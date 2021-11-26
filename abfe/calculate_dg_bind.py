@@ -169,7 +169,7 @@ bound_sd_lj_corr = float(bound_sd_lj_corr_str)
 # In[15]:
 
 
-std_state_corr = float(getStdState(f'bound/run0{run_no}/vanish/output/standard-state-s-1-b-4-d-0.25-o-60.dat'))
+std_state_corr = float(getStdState(f'bound/run0{run_no}/vanish/output/standard-state-s-1-b-4-d-0.25-o-6.dat'))
 
 
 # ### Calculate Output
