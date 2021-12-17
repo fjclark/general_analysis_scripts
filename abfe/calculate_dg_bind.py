@@ -12,6 +12,8 @@
 
 import numpy as np
 import sys
+import re
+import os
 
 
 # ### Arguments
@@ -110,13 +112,16 @@ def getStdState(input_file):
 
 # ### Paths to Files
 
-# In[7]:
+# Find dir names
 
+dir_names = os.listdir("bound")
+r = re.compile(f"run0{run_no}")
+dir_name = list(filter(r.match, dir_names))[0]
 
-energy_paths = {'free_discharge':f'free/run0{run_no}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
-         'free_vanish':f'free/run0{run_no}/vanish/output/freenrg-MBAR-p-83-overlap.dat',
-         'bound_discharge':f'bound/run0{run_no}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
-         'bound_vanish':f'bound/run0{run_no}/vanish/output/freenrg-MBAR-p-83-overlap.dat'}
+energy_paths = {'free_discharge':f'free/{dir_name}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
+         'free_vanish':f'free/{dir_name}/vanish/output/freenrg-MBAR-p-83-overlap.dat',
+         'bound_discharge':f'bound/{dir_name}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
+         'bound_vanish':f'bound/{dir_name}/vanish/output/freenrg-MBAR-p-83-overlap.dat'}
 
 
 # ### Get Energies
@@ -153,7 +158,7 @@ for section in energy_paths:
 # In[13]:
 
 
-free_lj_corr_str, free_sd_lj_corr_str = getLJcorr(f'free/run0{run_no}/vanish/output/freenrg-LJCOR.dat')[0:2]
+free_lj_corr_str, free_sd_lj_corr_str = getLJcorr(f'free/{dir_name}/vanish/output/freenrg-LJCOR.dat')[0:2]
 free_lj_corr = float(free_lj_corr_str)
 free_sd_lj_corr = float(free_sd_lj_corr_str)
 
@@ -161,7 +166,7 @@ free_sd_lj_corr = float(free_sd_lj_corr_str)
 # In[14]:
 
 
-bound_lj_corr_str, bound_sd_lj_corr_str = getLJcorr(f'bound/run0{run_no}/vanish/output/freenrg-LJCOR.dat')[0:2]
+bound_lj_corr_str, bound_sd_lj_corr_str = getLJcorr(f'bound/{dir_name}/vanish/output/freenrg-LJCOR.dat')[0:2]
 bound_lj_corr = float(bound_lj_corr_str)
 bound_sd_lj_corr = float(bound_sd_lj_corr_str)
 
@@ -169,7 +174,7 @@ bound_sd_lj_corr = float(bound_sd_lj_corr_str)
 # In[15]:
 
 
-std_state_corr = float(getStdState(f'bound/run0{run_no}/vanish/output/standard-state-s-1-b-4-d-0.25-o-6.dat'))
+std_state_corr = float(getStdState(f'bound/{dir_name}/vanish/output/standard-state-s-1-b-4-d-0.25-o-6.dat'))
 
 
 # ### Calculate Output
