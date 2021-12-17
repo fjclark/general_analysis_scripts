@@ -7,6 +7,7 @@ import os
 import MDAnalysis as mda
 from MDAnalysis.analysis import align
 from MDAnalysis.analysis.rms import RMSD
+import re
 sbn.set(font_scale=2,style="white")
 
 # Produces conformation plots (syn vs anti) for MIF 180
@@ -15,8 +16,22 @@ sbn.set(font_scale=2,style="white")
 # Note this will only work if minimal coordinate saving was set to
 # True in sim.cfg
 
-run = 1
-#run = int(sys.argv[1])
+# 01 to allow for up to 99 runs
+
+run_no = '0'
+
+# input desired run number as a string
+input_no = sys.argv[1]
+
+if int(input_no) < 10:
+    run_no += input_no
+else:
+    run_no = input_no
+
+# Get folder name
+dir_names = os.listdir("bound")
+r = re.compile(f"run0{run_no}")
+dir_name = list(filter(r.match, dir_names))[0]
 
 # Define atom selection
 selection = 'resname LIG and (not name H* OAA CAS CAD CAF CAG CAP CAE)'
@@ -26,10 +41,10 @@ selection = 'resname LIG and (not name H* OAA CAS CAD CAF CAG CAP CAE)'
 def plot(subfig ,leg, stage):
 
     #Define reference
-    ref = mda.Universe(f'{leg}/run00{run}/{stage}/input/SYSTEM.pdb')
+    ref = mda.Universe(f'{leg}/{dir_name}/{stage}/input/SYSTEM.pdb')
 
     #Define lambda values
-    lam_folders = [x for x in os.listdir(f'{leg}/run00{run}/{stage}/output') if 'lambda' in x]
+    lam_folders = [x for x in os.listdir(f'{leg}/{dir_name}/{stage}/output') if 'lambda' in x]
     lam_folders.sort()
 
     #Plot rmsd for all windows
@@ -41,8 +56,8 @@ def plot(subfig ,leg, stage):
     for i in range(no_windows):
         
         #calculate RMSD for window
-        mobile = mda.Universe(f'{leg}/run00{run}/{stage}/input/SYSTEM.pdb', 
-                             f'{leg}/run00{run}/{stage}/output/{lam_folders[i]}/traj000000001.dcd')
+        mobile = mda.Universe(f'{leg}/{dir_name}/{stage}/input/SYSTEM.pdb', 
+                             f'{leg}/{dir_name}/{stage}/output/{lam_folders[i]}/traj000000001.dcd')
         R = RMSD(mobile, ref, select=selection, groupselections=[selection])
         R.run()
         rmsd = R.results.rmsd.T
@@ -82,4 +97,4 @@ for leg in ["bound", "free"]:
         plot(subfigs[i], leg=leg, stage=stage)
         i += 1
 
-fig.savefig(f'conformation-plots-run-{run}.png', pad_inches=3)
+fig.savefig(f'conformation-plots-run-{run_no}.png', pad_inches=3)
