@@ -3,7 +3,7 @@
 
 # Takes desired run number as string (1-100) and returns all energy
 # contributions to the free energy of binding along with associated error calculated
-# by propogation of the MBAR errors (a large underestimation of the uncertainty
+# by propagation of the MBAR errors (a large underestimation of the uncertainty
 # calculated from multiple runs). Must be run in the directory containing the free 
 # and bound directories.
 
@@ -95,8 +95,8 @@ def getLJcorr(input_file):
 # In[6]:
 
 
-def getStdState(input_file):
-    '''Finds standard state correction from .dat file and returns correction as string'''
+def getBoreschAna(input_file):
+    '''Finds analytical correction for releasing Boresch restraints and returns correction as string'''
     
     with open(input_file,'r') as file:
         read_file = file.readlines()
@@ -104,8 +104,8 @@ def getStdState(input_file):
     energy=''
     
     for i, line in enumerate(read_file):
-        if line.startswith('Free energy change upon removing the restraint and applying standard state conditions'):
-            energy=read_file[i].split()[-2]
+        if line.startswith('Analytical correction for releasing Boresch restraints'):
+            energy=read_file[i].split()[-3]
             
     return energy
 
@@ -121,7 +121,8 @@ dir_name = list(filter(r.match, dir_names))[0]
 energy_paths = {'free_discharge':f'free/{dir_name}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
          'free_vanish':f'free/{dir_name}/vanish/output/freenrg-MBAR-p-83-overlap.dat',
          'bound_discharge':f'bound/{dir_name}/discharge/output/freenrg-MBAR-p-83-overlap.dat',
-         'bound_vanish':f'bound/{dir_name}/vanish/output/freenrg-MBAR-p-83-overlap.dat'}
+         'bound_vanish':f'bound/{dir_name}/vanish/output/freenrg-MBAR-p-83-overlap.dat',
+         'bound_restrain':f'bound/{dir_name}/restrain/output/freenrg-MBAR-p-83-overlap.dat'}
 
 
 # ### Get Energies
@@ -174,7 +175,7 @@ bound_sd_lj_corr = float(bound_sd_lj_corr_str)
 # In[15]:
 
 
-std_state_corr = float(getStdState(f'bound/{dir_name}/vanish/output/standard-state-s-1-b-4-d-0.25-o-6.dat'))
+boresch_ana_corr = float(getBoreschAna(f'bound/{dir_name}/vanish/output/boresch_analytical_correction.dat'))
 
 
 # ### Calculate Output
@@ -182,13 +183,13 @@ std_state_corr = float(getStdState(f'bound/{dir_name}/vanish/output/standard-sta
 # In[16]:
 
 
-dg_bind_mbar=energies_mbar['free_discharge']+energies_mbar['free_vanish']+free_lj_corr-energies_mbar['bound_discharge']-energies_mbar['bound_vanish']-bound_lj_corr-std_state_corr
+dg_bind_mbar=energies_mbar['free_discharge']+energies_mbar['free_vanish']+free_lj_corr-energies_mbar['bound_discharge']-energies_mbar['bound_vanish']-energies_mbar['bound_restrain']-bound_lj_corr-boresch_ana_corr
 
 
 # In[17]:
 
 
-dg_bind_ti=energies_ti['free_discharge']+energies_ti['free_vanish']+free_lj_corr-energies_ti['bound_discharge']-energies_ti['bound_vanish']-bound_lj_corr-std_state_corr
+dg_bind_ti=energies_ti['free_discharge']+energies_ti['free_vanish']+free_lj_corr-energies_ti['bound_discharge']-energies_ti['bound_vanish']-energies_ti['bound_restrain']-bound_lj_corr-boresch_ana_corr
 
 
 # In[19]:
@@ -224,24 +225,19 @@ dg_lj_ti=energies_ti['free_vanish']+free_lj_corr-energies_ti['bound_vanish']-bou
 
 
 for section in energy_paths:
+    print('Section: ',section)
+    print('MBAR estimate:', energies_mbar[section],'+/-',sd_mbar[section],'kcal/mol')
+    print('TI estimate:', energies_ti[section],'kcal/mol')
+
     if section == 'bound_vanish':
-        print('Section: ',section)
-        print('MBAR estimate:', energies_mbar[section],'+/-',sd_mbar[section],'kcal/mol')
-        print('TI estimate:', energies_ti[section],'kcal/mol')
         print('LJ correction: ', bound_lj_corr,'+/-',bound_sd_lj_corr,'kcal/mol')
-        print('Standard state correction ', std_state_corr, 'kcal/mol','\n')
+        print('Boresch analytical correction', boresch_ana_corr, 'kcal/mol','\n')
         
     elif section == 'free_vanish':
-        print('Section: ',section)
-        print('MBAR estimate:', energies_mbar[section],'+/-',sd_mbar[section],'kcal/mol')
-        print('TI estimate:', energies_ti[section],'kcal/mol')
         print('LJ correction: ', free_lj_corr,'+/-',free_sd_lj_corr,'kcal/mol','\n')
 
     else:
-        print('Section: ',section)
-        print('MBAR estimate:', energies_mbar[section],'+/-',sd_mbar[section],'kcal/mol')
-        print('TI estimate:', energies_ti[section],'kcal/mol','\n')
-    
+        print() 
     
 print('###########################################################################')
 
