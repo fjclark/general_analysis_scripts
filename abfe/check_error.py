@@ -32,7 +32,7 @@ def get_files_with_errors(file_list):
     for file in file_list:
         with open(file) as open_file:
             for line in open_file:
-                if "exit code 255" in line:
+                if "Exited with exit code" in line:
                     error_files.append(file)
     return error_files
 
@@ -40,11 +40,18 @@ def get_files_with_errors(file_list):
 if __name__ == "__main__":
     parent_dir = sys.argv[1]
     out_files = get_out_files(parent_dir)
-    lam_vals = get_lambdas(parent_dir)
+    lam_vals= get_lambdas(parent_dir)
+    success_lam_vals = set(lam_vals)
     files_with_errors = get_files_with_errors(out_files)
 
     print("The lambda values at which errors occurred are:")
-
     for file in files_with_errors:
         index = int(file.split(sep=".")[1])
+        success_lam_vals.remove(lam_vals[index])
         print(lam_vals[index])
+
+    print("\n The lambda values of successful simulations are:")
+    for val in sorted(success_lam_vals): 
+        print(val)
+
+        
