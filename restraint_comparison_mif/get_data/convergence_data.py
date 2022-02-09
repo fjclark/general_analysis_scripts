@@ -3,23 +3,18 @@
 # individual stages). The resulting dictionary is of the form:
 # {run:{stage:{cumtime1: {dg_tot:DG_tot, pmf:{lamval1: DG1, lamval2:DG2, ...}}, cumtime2:{...}, ...}}}
 
-from . import get_dir_paths
+from . import dir_paths
 import os, pickle
 
-#import glob,sys,os
-#import numpy as np
-#import math
-#import matplotlib.pyplot as plt
-
 # Constants TODO: Add arg parser
-CHUNKSIZE = 1  # ns - how far to separate each calculation of energies
+CHUNKSIZE = 0.05  # ns - how far to separate each calculation of energies
 TIMESTEP = 0.000004  # ns
 NRGFREQ = 100  # How many steps between energy evaluations
 LEG = "bound"
 RUN_NOS = [1, 2, 3, 4, 5]
 SIMTIME = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
     "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3}}
-DIR_PATHS = get_dir_paths.get_dir_paths(RUN_NOS, LEG)
+DIR_PATHS = dir_paths.get_dir_paths(RUN_NOS, LEG)
 
 
 def truncate_simfile(in_file, out_file, start_time, end_time):
@@ -86,27 +81,32 @@ def read_mbar_data(mbar_file, lam_vals):
 
     Returns:
         dg_tot (float): Total MBAR free energy for stage
-        pmf_dict (dict): Dict of PMF values from MBAR for each lambda value
+        pmf (list): List of relative DG values from MBAR for each lambda value
+        overlap (list): Matrix of overlap values (as a list of lists)
     """
-    dg_tot = 0
-    pmf_dict = {}
+    dg_tot = 0 # MBAR DG, float
+    pmf = [] # List
+    overlap = [] # List of lists (overlap matrix)
+    no_lam_vals = len(lam_vals)
 
     with open(mbar_file,"r") as istream:
         lines = istream.readlines()
 
-        pmf_idx = 0
-        dg_tot_idx = 0
-        for i, line in enumerate(lines):
-            if line.startswith("#PMF from MBAR"):
-                pmf_idx = i+1
-            if line.startswith("#MBAR free energy difference"):
-                dg_tot_idx = i+1
+        for i,l in enumerate(lines):
+            if l.startswith("#Overlap matrix"):
+                for j in range(i+1, i+no_lam_vals+1):
+                    overlap.append([float(x) for x in lines[j].strip().split(" ")])
+            elif l.startswith("#PMF from MBAR in kcal/mol"):
+                for j in range(i+1, i+no_lam_vals+1):
+                    pmf.append(float(lines[j].strip().split(" ")[1]))
+            elif l.startswith("#MBAR free energy difference"):
+                dg_tot = float(lines[i+1].split()[0].strip(","))
 
-        for i, lam_val in enumerate(lam_vals):
-            pmf_dict[lam_val] = float(lines[pmf_idx+i].split(" ")[1].strip())
-        dg_tot = float(lines[dg_tot_idx].split()[0].strip(","))
-            
-    return dg_tot, pmf_dict
+  #  for i,line in enumerate(overlap): # read in as str - convert to float
+  #      for j, num in enumerate(line):
+  #          overlap[i][j] = float(num)
+
+    return dg_tot, pmf, overlap
 
 
 def get_convergence_dict():
@@ -127,19 +127,22 @@ def get_convergence_dict():
             start_time = SIMTIME[stage]["discard"]
             final_end_time = SIMTIME[stage]["wind_len"]
             end_times = [(x*CHUNKSIZE)+start_time for x in range(1, int((final_end_time-start_time)/CHUNKSIZE)+1)]
-            cum_times = [x-start_time for x in end_times]
+            win_times = [x-start_time for x in end_times] # Cumulative time for single lam window
 
-            for i, cumtime in enumerate(cum_times):
-                conv_dict[run][stage][cumtime]={}
+            for i, win_time in enumerate(win_times): # There will be a corrersponding cumulative time, returned by do_mbar
                 lam_vals = DIR_PATHS[run][stage]["lam_vals"]
                 input_dir = DIR_PATHS[run][stage]["output"] # output of simulations is input to do_mbar()
 
                 os.system("mkdir tmp")
-                print("#############################################################################################")
-                print(f"MBAR analysis in progress for {run}, {stage}, cumulative sampling time {cumtime} ns")
-                print("#############################################################################################")
-                do_mbar(lam_vals, input_dir, "./tmp", start_time,end_times[i])
-                dg_tot, pmf_dict = read_mbar_data("./tmp/mbar.dat",lam_vals)
+                print("###############################################################################################")
+                print(f"MBAR analysis in progress for {run}, {stage}, cumulative single-window time {win_time:.3f} ns")
+                print("###############################################################################################")
+                cumtime = do_mbar(lam_vals, input_dir, "./tmp", start_time,end_times[i])
+                conv_dict[run][stage][cumtime]={}
+                dg_tot, pmf, _ = read_mbar_data("./tmp/mbar.dat",lam_vals) # throw away overlap
+                pmf_dict = {}
+                for i, lam_val in enuerate(lam_vals):
+                    pmf_dict[lam_val] = pmf[i]
                 conv_dict[run][stage][cumtime]["dg_tot"] = dg_tot
                 conv_dict[run][stage][cumtime]["pmf"] = pmf_dict
                 print(f"dg_tot = {dg_tot}")
@@ -155,4 +158,4 @@ def get_convergence_dict():
     return conv_dict
 
 if __name__ == "__main__":
-    print(get_convergence_dict())
+    get_convergence_dict()
