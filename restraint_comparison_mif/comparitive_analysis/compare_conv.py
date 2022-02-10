@@ -29,6 +29,7 @@ def plot_conv(ax, leg, stage, x_vals, y_vals_list, x_label, y_label):
     conf_int = np.std(y_vals, axis=0)*(2.776/np.sqrt(5)) # 95% C.I. for sample size of 5, so t = 2.776 (4 DOF)
     print("WARNING: 95 % C.I. assumes sample size of 5")
 
+    #plt.xticks(np.linspace(min(x_vals), max(x_vals),6))
     ax.plot(x_vals,y_avg)
     for i, entry in enumerate(y_vals):
         ax.plot(x_vals,entry, linestyle='dashed', label=f"run {i+1}")
@@ -36,19 +37,8 @@ def plot_conv(ax, leg, stage, x_vals, y_vals_list, x_label, y_label):
     ax.set_title(f'{leg} {stage}')
     ax.set_ylabel(y_label)
     ax.set_xlabel(x_label)
-    plt.xticks(np.linspace(min(x_vals), max(x_vals),6))
     for tick in ax.get_xticklabels():
         tick.set_rotation(-45)
-
-    #if len(x_vals) > 8: # Hide some ticks so this doesn't become a mess
-    #    every_nth = 5
-    #    for n, label in enumerate(ax.get_xticklabels()):
-    #        if n % every_nth != 0:
-    #            label.set_color("white")
-               # label.set_visible(False)
-    #    for n, tick in enumerate(ax.xticks):
-    #        if n % every_nth != 0:
-    #            tick.set_visible(False)
 
     ax.legend()
     ax.fill_between(x_vals, y_avg-conf_int, y_avg+conf_int, alpha=0.5, facecolor='#ffa500')

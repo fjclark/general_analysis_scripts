@@ -141,7 +141,7 @@ def get_convergence_dict():
                 conv_dict[run][stage][cumtime]={}
                 dg_tot, pmf, _ = read_mbar_data("./tmp/mbar.dat",lam_vals) # throw away overlap
                 pmf_dict = {}
-                for i, lam_val in enuerate(lam_vals):
+                for i, lam_val in enumerate(lam_vals):
                     pmf_dict[lam_val] = pmf[i]
                 conv_dict[run][stage][cumtime]["dg_tot"] = dg_tot
                 conv_dict[run][stage][cumtime]["pmf"] = pmf_dict
