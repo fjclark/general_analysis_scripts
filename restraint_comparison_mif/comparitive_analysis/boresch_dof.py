@@ -27,6 +27,7 @@ def get_mda_universe(leg, run, stage, lam_val):
     paths = dir_paths.get_dir_paths([run],leg)
     top_file = f"{paths[run_name][stage]['input']}/SYSTEM.top"
     traj_file = f"{paths[run_name][stage]['output']}/lambda-{lam_val}/traj000000001.dcd"
+    print(traj_file)
     u = mda.Universe(top_file, traj_file)
 
     return u
@@ -135,7 +136,7 @@ def get_boresch_dof(anchor_ats, u):
     return r, thetaA, thetaB, phiA, phiB, phiC, thetaR, thetaL
 
 
-def track_dof(anchor_ats, u, percent_traj_use):
+def track_dof(anchor_ats, u, percent_traj):
     """Get values, mean, and standard deviation of Boresch
     degrees of freedom and internal angles defined by supplied
     anchor atoms. Also calculate total variance accross all DOF
@@ -144,7 +145,7 @@ def track_dof(anchor_ats, u, percent_traj_use):
     Args:
         anchor_ats (tuple): Anchor atom indices, of form (r1,r2,r3,l1,l2,l3)
         u (mda universe): The system
-        percent_traj_use (float): Percentage of run to average over (25 % would
+        percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
 
     Returns:
@@ -154,7 +155,7 @@ def track_dof(anchor_ats, u, percent_traj_use):
     
     r1,r2,r3,l1,l2,l3 = anchor_ats
     n_frames = len(u.trajectory)
-    discard_before = round(n_frames - ((percent_traj_use/100)*n_frames))-1 # Index of first frame to be used for analysis
+    first_frame = round(n_frames - ((percent_traj/100)*n_frames)) # Index of first frame to be used for analysis
     
     dof_dict = {}
     dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC","thetaR","thetaL"]
@@ -164,8 +165,8 @@ def track_dof(anchor_ats, u, percent_traj_use):
         dof_dict[dof]["values"]=[]
 
     for i, frame in enumerate(u.trajectory):
-        if i >= discard_before:
-            if i == discard_before:
+        if i >= first_frame:
+            if i == first_frame:
                 print(f"First frame no: {i+1}")
             r, thetaA, thetaB, phiA, phiB, phiC, thetaR, thetaL = get_boresch_dof(anchor_ats,u)
             dof_dict["r"]["values"].append(r)
@@ -241,13 +242,14 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj):
         runs (list): Run numbers (ints)
         stage ([type]): restrain, discharge, or vanish
         lam_val (str): Window of interest
-        percent_traj_use (float): Percentage of run to average over (25 % would
+        percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
 
     Returns:
         dict: dict of dof_dicts, with run names as keys
     """
-    
+    if type(lam_val == float):
+        lam_val = f"{lam_val:.3f}" # Account for input of float instead of string
     dof_dicts = {}
     paths = dir_paths.get_dir_paths(runs, leg)
 
@@ -274,7 +276,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
         runs (list): Run numbers (ints)
         stage ([type]): restrain, discharge, or vanish
         lam_val (str): Window of interest
-        percent_traj_use (float): Percentage of run to average over (25 % would
+        percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
@@ -284,21 +286,75 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
     no_dof = len(selected_dof_list)
 
     fig, axs = plt.subplots(1, no_dof, figsize=(4*no_dof,4), dpi=1000)
-    colours =  ['#ffffe0', '#7adcdc', '#51a8c6', '#2975b2', '#00429d'] # Will cause issues for more than 5 runs
+    colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
 
     for j, run in enumerate(runs):
         run_name = dir_paths.get_run_name(run,leg)
         for i, dof in enumerate(selected_dof_list):
+            ax = axs[i]
             values = dof_dicts[run_name][dof]["values"]
             mean = dof_dicts[run_name][dof]["mean"]
-            axs[i].hist(values,label = f"{run_name}", color=colours[j], edgecolor='k')
-            axs[i].axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}")
+            sd = dof_dicts[run_name][dof]["sd"]
+            ax.hist(values,label = f"{run_name}", color=colours[j], edgecolor='k')
+            ax.axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r":
-                axs[i].set_xlabel("r ($\AA$)")
+                ax.set_xlabel("r ($\AA$)")
             else:
-                axs[i].set_xlabel(f"{dof} (rad)")
-            axs[i].set_ylabel("Counts")
-            axs[i].legend()
+                ax.set_xlabel(f"{dof} (rad)")
+            ax.set_ylabel("Counts")
+            ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
     fig.savefig(f"analysis/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
+
+
+def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,legend):
+    """Plot values of selected degrees of freedom over specified
+    final percentage of trajectory for supplied runs and lambda window.
+
+    Args:
+        leg (str): bound
+        runs (list): [
+        runs (list): Run numbers (ints)
+        stage ([type]): restrain, discharge, or vanish
+        lam_val (str): Window of interest
+        percent_traj (float): Percentage of run to average over (25 % would
+        result in intial 75 % of trajectory being discarded)
+        selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
+        "phiC","thetaR","thetaL"]
+    """
+
+    dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj)
+    no_dof = len(selected_dof_list)
+
+    fig, axs = plt.subplots(1, no_dof, figsize=(4*no_dof,4), dpi=1000)
+    colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
+
+    for j, run in enumerate(runs):
+        run_name = dir_paths.get_run_name(run,leg)
+        for i, dof in enumerate(selected_dof_list):
+            ax = axs[i]
+            values = dof_dicts[run_name][dof]["values"]
+            mean = dof_dicts[run_name][dof]["mean"]
+            sd = dof_dicts[run_name][dof]["sd"]
+            ax.plot([x for x in range(len(values))], values, label = f"{run_name}", color=colours[j])
+            ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
+            if dof == "r":
+                ax.set_ylabel("r ($\AA$)")
+            else:
+                ax.set_ylabel(f"{dof} (rad)")
+            ax.set_xlabel("Frame No")
+            if legend:
+                ax.legend(loc=(1.04,0))
+
+    fig.tight_layout()
+    fig.savefig(f"analysis/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
+
+
+# Just seems to return whitespace (but no errors) if functions modified to return figures
+#def plot_dof(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
+#    fig = plt.figure(figsize=(4*len(selected_dof_list), 8))
+#    subfigs = fig.subfigures(1, 2)
+#    subfigs[0] = plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list)
+#    subfigs[1] = plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, False)
+#    fig.savefig(f"analysis/{leg}_{stage}_{lam_val}_boresch_dof.png")
