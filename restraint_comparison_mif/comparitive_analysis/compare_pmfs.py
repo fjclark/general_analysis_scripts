@@ -26,7 +26,7 @@ def plot_all_pmfs(run_nos, leg):
         pmfs = []
         for run in runs:
             mbar_path = dir_paths[run][stage]["mbar_data"]
-            _, pmf, _ = read_mbar_data(mbar_path, lam_vals) # Throw away overall DG and overlap
+            _, _, pmf, _ = read_mbar_data(mbar_path, lam_vals) # Throw away overall DG, sd, and overlap
             pmfs.append(pmf)
 
         plot_conv(axs[i], leg, stage, lam_vals, pmfs, "$\lambda$", "$\Delta \it{G}$ / kcal.mol$^-$$^1$")

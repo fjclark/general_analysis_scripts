@@ -81,10 +81,10 @@ def read_mbar_data(mbar_file, lam_vals):
 
     Returns:
         dg_tot (float): Total MBAR free energy for stage
+        dg_sd (float): Standard deviation estimate from MBAR
         pmf (list): List of relative DG values from MBAR for each lambda value
         overlap (list): Matrix of overlap values (as a list of lists)
     """
-    dg_tot = 0 # MBAR DG, float
     pmf = [] # List
     overlap = [] # List of lists (overlap matrix)
     no_lam_vals = len(lam_vals)
@@ -101,12 +101,13 @@ def read_mbar_data(mbar_file, lam_vals):
                     pmf.append(float(lines[j].strip().split(" ")[1]))
             elif l.startswith("#MBAR free energy difference"):
                 dg_tot = float(lines[i+1].split()[0].strip(","))
+                dg_conf_int = float(lines[i+1].split()[1].strip(","))
 
   #  for i,line in enumerate(overlap): # read in as str - convert to float
   #      for j, num in enumerate(line):
   #          overlap[i][j] = float(num)
 
-    return dg_tot, pmf, overlap
+    return dg_tot, dg_conf_int, pmf, overlap
 
 
 def get_convergence_dict():
@@ -139,7 +140,7 @@ def get_convergence_dict():
                 print("###############################################################################################")
                 cumtime = do_mbar(lam_vals, input_dir, "./tmp", start_time,end_times[i])
                 conv_dict[run][stage][cumtime]={}
-                dg_tot, pmf, _ = read_mbar_data("./tmp/mbar.dat",lam_vals) # throw away overlap
+                dg_tot, _, pmf, _ = read_mbar_data("./tmp/mbar.dat",lam_vals) # throw away sd and overlap
                 pmf_dict = {}
                 for i, lam_val in enumerate(lam_vals):
                     pmf_dict[lam_val] = pmf[i]

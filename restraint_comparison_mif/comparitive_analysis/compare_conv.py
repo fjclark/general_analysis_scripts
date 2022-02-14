@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 from ..save_data import mkdir_if_required
+import scipy.stats as st
+
 
 LEG = "bound"
 
@@ -27,8 +29,7 @@ def plot_conv(ax, leg, stage, x_vals, y_vals_list, x_label, y_label):
     x_vals = np.array(x_vals).astype(float)
     y_vals = np.array(y_vals_list).astype(float) # No problem even if input is already array
     y_avg = np.mean(y_vals, axis=0)
-    conf_int = np.std(y_vals, axis=0)*(2.776/np.sqrt(5)) # 95% C.I. for sample size of 5, so t = 2.776 (4 DOF)
-    print("WARNING: 95 % C.I. assumes sample size of 5")
+    conf_int = st.t.interval(0.95, len(y_vals[:,0])-1, loc=y_avg, scale=st.sem(y_vals,axis=0)) # 95 % C.I.
 
     #plt.xticks(np.linspace(min(x_vals), max(x_vals),6))
     ax.plot(x_vals,y_avg)

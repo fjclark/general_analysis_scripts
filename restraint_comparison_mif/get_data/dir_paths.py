@@ -98,9 +98,9 @@ def get_dir_paths(run_nos, leg):
             dir_paths[run_name][stage]["input"] = f"{leg}/{run_name}/{stage}/input"
             dir_paths[run_name][stage]["output"] = f"{leg}/{run_name}/{stage}/output"
 
-            mbar_data_path = get_file_name(
+            mbar_data_name = get_file_name(
                 f"{leg}/{run_name}/{stage}/output", "MBAR")
-            dir_paths[run_name][stage]["mbar_data"] = f"{leg}/{run_name}/{stage}/output/{mbar_data_path}"
+            dir_paths[run_name][stage]["mbar_data"] = f"{leg}/{run_name}/{stage}/output/{mbar_data_name}"
 
             lam_dirs, lam_vals = get_lam_vals(
                 f"{leg}/{run_name}/{stage}/output")
