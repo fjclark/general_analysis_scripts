@@ -19,6 +19,12 @@ def plot_pmf_conv(ax, leg, stage, run_name, conv_dict):
         stage (str): e.g. vanish
         run_name (str): e.g. run001
         conv_dict (dict): The unpickled convergence data
+
+    Returns:
+        mapper: Colour mapper for cumulative sampling time per window.
+        Allows this to be placed in selected axes in figure, rather than
+        all.
+
     """
     print(f"Plotting convergence of PMF for run {run_name}, {leg} {stage}")
     cumtime_dict = conv_dict[run_name][stage]
@@ -43,7 +49,13 @@ def plot_pmf_conv(ax, leg, stage, run_name, conv_dict):
 
 
 def plot_pmfs_conv(leg="bound", run_nos=[1,2,3,4,5], pickled_data="analysis/convergence_data.pickle"):
+    """Plot convergence of PMFs for individual stages of individual runs in grid.
 
+    Args:
+        leg (str, optional): Bound or free. Defaults to "bound".
+        run_nos (list, optional): List of run numbers to plot. Defaults to [1,2,3,4,5].
+        pickled_data (str, optional): Path to pickled data file. Defaults to "analysis/convergence_data.pickle".
+    """
     with open(pickled_data, "rb") as istream:
         conv_dict = pickle.load(istream)
 
