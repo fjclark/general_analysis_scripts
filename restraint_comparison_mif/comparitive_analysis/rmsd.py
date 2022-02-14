@@ -7,6 +7,7 @@ from MDAnalysis.analysis.rms import RMSD
 from .boresch_dof import get_mda_universe
 from ..get_data.dir_paths import get_dir_paths
 from ..get_data.dir_paths import get_run_name
+from ..save_data import mkdir_if_required
 
 
 def plot_rmsd(leg, run_no, stage, lam_val, ax, percent_traj_use, selection):
@@ -96,4 +97,5 @@ def plot_rmsds(leg, runs, percent_traj_dict, selection):
                 x_axis = ax.get_xaxis()
                 x_axis.set_visible(False)
         
-    fig.savefig(f'analysis/{leg}_rmsd_{selection}.png')
+    mkdir_if_required("analysis/comparitive_analysis")
+    fig.savefig(f'analysis/comparitive_analysis/{leg}_rmsd_{selection}.png')

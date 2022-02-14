@@ -6,6 +6,7 @@
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np
+from ..save_data import mkdir_if_required
 
 LEG = "bound"
 
@@ -70,7 +71,8 @@ def plot_stages_conv(pickled_data):
         plot_conv(axs[i], LEG, stage, cumtimes, fr_nrgs, 'Cumulative sampling time / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
 
     fig.tight_layout()
-    fig.savefig(f"analysis/{LEG}_stages_joint_convergence.png")
+    mkdir_if_required("analysis/comparitive_analysis")
+    fig.savefig(f"analysis/comparitive_analysis/{LEG}_stages_joint_convergence.png")
 
 
 def plot_overall_conv(pickled_data):
@@ -105,7 +107,8 @@ def plot_overall_conv(pickled_data):
 
     plot_conv(ax, LEG, "overall", tot_cumtimes, tot_fr_nrgs, 'Cumulative sampling time / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
     fig.tight_layout()
-    fig.savefig(f"analysis/{LEG}_overall_convergence.png")
+    mkdir_if_required("analysis/comparitive_analysis")
+    fig.savefig(f"analysis/comparitive_analysis/{LEG}_overall_convergence.png")
 
 
 if __name__ == "__main__":

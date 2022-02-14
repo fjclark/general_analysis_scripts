@@ -9,6 +9,7 @@ from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from ..get_data import dir_paths
 from ast import literal_eval
+from ..save_data import mkdir_if_required
 
 
 def get_mda_universe(leg, run, stage, lam_val):
@@ -16,7 +17,7 @@ def get_mda_universe(leg, run, stage, lam_val):
 
     Args:
         leg (str): Bound or free
-        run (str): Run nume
+        run (i): Run number
         stage (str): Restrain, discharge, vanish
         lam_val (str): e.g. "0.000"
 
@@ -27,8 +28,8 @@ def get_mda_universe(leg, run, stage, lam_val):
     paths = dir_paths.get_dir_paths([run],leg)
     top_file = f"{paths[run_name][stage]['input']}/SYSTEM.top"
     traj_file = f"{paths[run_name][stage]['output']}/lambda-{lam_val}/traj000000001.dcd"
-    print(traj_file)
     u = mda.Universe(top_file, traj_file)
+    print(f"Opening {traj_file}")
 
     return u
 
@@ -305,7 +306,8 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
             ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
-    fig.savefig(f"analysis/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
+    mkdir_if_required("analysis/comparitive_analysis")
+    fig.savefig(f"analysis/comparitive_analysis/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
 
 
 def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,legend):
@@ -348,7 +350,8 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,leg
                 ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
-    fig.savefig(f"analysis/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
+    mkdir_if_required("analysis/comparitive_analysis")
+    fig.savefig(f"analysis/comparitive_analysis/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
 
 
 # Just seems to return whitespace (but no errors) if functions modified to return figures
