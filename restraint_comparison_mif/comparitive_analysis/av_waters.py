@@ -49,6 +49,9 @@ def plot_av_waters(leg="bound", runs=[1,2,3,4,5], stage="vanish", percent_traj=6
         index (int): Atom fromm which distance is calculated
         length (float): Distance in Angstrom
     """
+    print("###############################################################################################")
+    print(f"Plotting average number of waters within {length} A of atom index {index} for {stage} stage and\
+    final {percent_traj} % of traj.")
 
     paths = get_dir_paths(runs, leg)
     run_names = list(paths.keys())

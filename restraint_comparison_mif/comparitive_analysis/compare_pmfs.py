@@ -15,6 +15,9 @@ def plot_all_pmfs(run_nos, leg):
         run_nos (list): List of run numbers to plot
         leg (str): Bound or free
     """
+    print("###############################################################################################")
+    print("Plotting all PMFs")
+
     dir_paths = get_dir_paths(run_nos, leg)
     runs = list(dir_paths.keys())
     stages = list(dir_paths[runs[0]].keys()) # stages from first run

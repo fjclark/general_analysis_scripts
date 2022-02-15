@@ -56,6 +56,9 @@ def plot_pmfs_conv(leg="bound", run_nos=[1,2,3,4,5], pickled_data="analysis/conv
         run_nos (list, optional): List of run numbers to plot. Defaults to [1,2,3,4,5].
         pickled_data (str, optional): Path to pickled data file. Defaults to "analysis/convergence_data.pickle".
     """
+    print("###############################################################################################")
+    print("Plotting convergence of all PMFs individually")
+
     with open(pickled_data, "rb") as istream:
         conv_dict = pickle.load(istream)
 

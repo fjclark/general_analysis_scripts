@@ -118,6 +118,8 @@ def get_convergence_dict():
     Returns:
         dict: convergence data
     """
+    print("###############################################################################################")
+    print("Calculating convergence data and obtaining convergence dictionary")
 
     conv_dict = {}
     

@@ -6,9 +6,9 @@ from cProfile import run
 import numpy as np
 import statsmodels.stats.api as sms
 
-from ..get_data.dir_paths import get_dir_paths
+from .dir_paths import get_dir_paths
 from ..save_data import mkdir_if_required
-from ..get_data.convergence_data import read_mbar_data
+from .convergence_data import read_mbar_data
 import scipy.stats as st
 
 
@@ -24,8 +24,13 @@ def get_lj_corr(input_file):
     with open(input_file,'r') as file:
         lines = file.readlines()
     
-    correction = float(lines[0].split()[2])
-    conf_int= float(lines[0].split()[4])
+    try:
+        correction = float(lines[0].split()[2])
+        conf_int= float(lines[0].split()[4])
+    except:
+        print("ERROR: LJ correction has likely failed")
+        correction = 0
+        conf_int = 0
         
     return correction,conf_int
 
@@ -99,10 +104,10 @@ def write_results_indiv(results):
         results (dict): Dictionary of results (possibly for several runs)
     """
     for run_name in results.keys():
-        mkdir_if_required("analysis/indiv_analysis")
-        mkdir_if_required(f"analysis/indiv_analysis/{run_name}")
+        mkdir_if_required("analysis/results")
+        mkdir_if_required(f"analysis/results/{run_name}")
 
-        with open(f"analysis/indiv_analysis/{run_name}/{run_name}_results.txt", "wt") as f:
+        with open(f"analysis/results/{run_name}/{run_name}_results.txt", "wt") as f:
             f.write("Free energy estimates from MBAR:\n")
             f.write("(Uncertainties are 95 % C.I.s derived from MBAR for single run)\n\n")
             for contribution in results[run_name].keys():
@@ -118,7 +123,7 @@ def write_results_overall(results):
     Args:
         results (dict): Results dictionary
     """
-    mkdir_if_required("analysis/comparitive_analysis")
+    mkdir_if_required("analysis/results")
 
     tot_dict = {}
     run_names = list(results.keys())
@@ -134,7 +139,7 @@ def write_results_overall(results):
         conf_int = st.t.interval(0.95, len(vals)-1, loc=np.mean(vals), scale=st.sem(vals))
         tot_dict[contribution]["95% C.I."] = vals.mean() - conf_int[0] # Because C.I. returned as tuple (min, max) 
 
-    with open(f"analysis/comparitive_analysis/results.txt", "wt") as f:
+    with open(f"analysis/results/results.txt", "wt") as f:
         f.write("Overall free energy estimates from MBAR:\n")
         f.write(f"(Uncertainty estimates are 95 % C.I.s derived from differences between {len(run_names)} replicate runs)\n\n")
         for contribution in tot_dict.keys():
@@ -151,6 +156,8 @@ def write_results(leg="bound", run_nos = [1,2,3,4,5]):
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): List of run numbers (ints). Defaults to [1,2,3,4,5].
     """
+    print("###############################################################################################")
+    print("Writing results")
     results = get_results(leg, run_nos)
     write_results_indiv(results)
     write_results_overall(results)

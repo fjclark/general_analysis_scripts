@@ -52,6 +52,9 @@ def plot_stages_conv(pickled_data):
     Args:
         pickled_data (str): Path to pickled convergence dictionary data
     """
+    print("###############################################################################################")
+    print("Plotting convergence for individual stages")
+
     with open(pickled_data, "rb") as istream:
         conv_dict = pickle.load(istream)
 
@@ -82,6 +85,9 @@ def plot_overall_conv(pickled_data):
     Args:
         pickled_data (str): Path to pickled convergence dictionary data
     """
+    print("###############################################################################################")
+    print("Plotting overall convergence")
+
     with open(pickled_data, "rb") as istream:
         conv_dict = pickle.load(istream)
 

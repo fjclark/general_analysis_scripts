@@ -61,6 +61,9 @@ def plot_rmsds(leg, runs, percent_traj_dict, selection):
         to use for given stage (of form {"stage":percent,...})
         selection (str): atom selection in mda selection language
     """
+    print("###############################################################################################")
+    print(f"Plotting RMSDs for {leg} leg and selection {selection}")
+
     paths = get_dir_paths(runs, leg)
     run_names = list(paths.keys())
     stages = list(paths[run_names[0]].keys())

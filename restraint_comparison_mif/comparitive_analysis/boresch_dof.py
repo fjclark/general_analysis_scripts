@@ -282,6 +282,8 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
     """
+    print("###############################################################################################")
+    print(f"Plotting histograms for Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
 
     dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj)
     no_dof = len(selected_dof_list)
@@ -310,7 +312,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
     fig.savefig(f"analysis/comparitive_analysis/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
 
 
-def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,legend):
+def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
     """Plot values of selected degrees of freedom over specified
     final percentage of trajectory for supplied runs and lambda window.
 
@@ -325,6 +327,8 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,leg
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
     """
+    print("###############################################################################################")
+    print(f"Plotting values of Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
 
     dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj)
     no_dof = len(selected_dof_list)
@@ -346,8 +350,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list,leg
             else:
                 ax.set_ylabel(f"{dof} (rad)")
             ax.set_xlabel("Frame No")
-            if legend:
-                ax.legend(loc=(1.04,0))
+            ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
     mkdir_if_required("analysis/comparitive_analysis")

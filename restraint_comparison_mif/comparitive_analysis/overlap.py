@@ -29,7 +29,15 @@ def plot_overlap_mat(ax, leg, stage, run_name, mbar_file, lam_vals):
 
 
 def plot_overlap_mats(leg="bound", run_nos=[1,2,3,4,5]):
+    """Plot all overlap matrices for given leg and given runs.
 
+    Args:
+        leg (str, optional): Bound or free. Defaults to "bound".
+        run_nos (list, optional): Run numbers for runs to plot. Defaults to [1,2,3,4,5].
+    """
+    print("###############################################################################################")
+    print("Plotting all PMFs")
+    
     paths = get_dir_paths(run_nos, leg)
     run_names = list(paths.keys())
     stages = list(paths[run_names[0]].keys())
