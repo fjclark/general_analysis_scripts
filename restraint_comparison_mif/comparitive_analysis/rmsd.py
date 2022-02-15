@@ -29,7 +29,7 @@ def plot_rmsd(leg, run_no, stage, lam_val, ax, percent_traj_use, selection):
 
     # Get index of first frame to use and use this to get the reference
     n_frames = len(mobile.trajectory)
-    first_frame_idx = round(n_frames - ((percent_traj_use/100)*n_frames))-1 # Index of first frame to be used for analysis
+    first_frame_idx = round(n_frames - ((percent_traj_use/100)*n_frames)) # Index of first frame to be used for analysis
     print(f"Calculating RMSD for {leg} {stage} lambda: {lam_val} run:{run_no}")
     print(f"Reference taken from frame number: {first_frame_idx +1}")
 
