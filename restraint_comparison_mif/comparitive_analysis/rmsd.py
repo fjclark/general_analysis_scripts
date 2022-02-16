@@ -100,5 +100,5 @@ def plot_rmsds(leg, runs, percent_traj_dict, selection):
                 x_axis = ax.get_xaxis()
                 x_axis.set_visible(False)
         
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f'analysis/comparitive_analysis/{leg}_rmsd_{selection}.png')
+    mkdir_if_required("analysis/rmsd")
+    fig.savefig(f'analysis/rmsd/{leg}_rmsd_{selection}.png')

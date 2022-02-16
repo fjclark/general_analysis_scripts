@@ -10,9 +10,6 @@ from ..save_data import mkdir_if_required
 import scipy.stats as st
 
 
-LEG = "bound"
-
-
 def plot_conv(ax, leg, stage, x_vals, y_vals_list, x_label, y_label):
     """Plot convergence with cumulative sampling time 
     for a given stage.
@@ -43,14 +40,15 @@ def plot_conv(ax, leg, stage, x_vals, y_vals_list, x_label, y_label):
         tick.set_rotation(-45)
 
     ax.legend()
-    ax.fill_between(x_vals, y_avg-conf_int, y_avg+conf_int, alpha=0.5, facecolor='#ffa500')
+    ax.fill_between(x_vals, conf_int[0], conf_int[1], alpha=0.5, facecolor='#ffa500')
 
 
-def plot_stages_conv(pickled_data):
+def plot_stages_conv(pickled_data, leg):
     """Plot convergence accross all runs for individual stages.
 
     Args:
         pickled_data (str): Path to pickled convergence dictionary data
+        leg (str): Bound or free
     """
     print("###############################################################################################")
     print("Plotting convergence for individual stages")
@@ -72,18 +70,19 @@ def plot_stages_conv(pickled_data):
                 fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
             fr_nrgs.append(fr_nrg_run)
 
-        plot_conv(axs[i], LEG, stage, cumtimes, fr_nrgs, 'Cumulative sampling time / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
+        plot_conv(axs[i], leg, stage, cumtimes, fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
 
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{LEG}_stages_joint_convergence.png")
+    mkdir_if_required("analysis/overall_convergence")
+    fig.savefig(f"analysis/overall_convergence/{leg}_stages_joint_convergence.png")
 
 
-def plot_overall_conv(pickled_data):
+def plot_overall_conv(pickled_data, leg):
     """Plot overall convergence accross all runs for given leg.
 
     Args:
         pickled_data (str): Path to pickled convergence dictionary data
+        leg (str): Bound or free
     """
     print("###############################################################################################")
     print("Plotting overall convergence")
@@ -112,10 +111,10 @@ def plot_overall_conv(pickled_data):
     tot_cumtimes = np.sum(np.array(tot_cumtimes), axis=0)
     tot_fr_nrgs = np.sum(np.array(tot_fr_nrgs), axis=0)
 
-    plot_conv(ax, LEG, "overall", tot_cumtimes, tot_fr_nrgs, 'Cumulative sampling time / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
+    plot_conv(ax, leg, "overall", tot_cumtimes, tot_fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{LEG}_overall_convergence.png")
+    mkdir_if_required("analysis/overall_convergence")
+    fig.savefig(f"analysis/overall_convergence/{leg}_overall_convergence.png")
 
 
 if __name__ == "__main__":

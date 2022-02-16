@@ -78,5 +78,5 @@ def plot_pmfs_conv(leg="bound", run_nos=[1,2,3,4,5], pickled_data="analysis/conv
                 fig.colorbar(mapper, ax=ax).set_label('Cumulative Sampling Time per Window / ns')
         
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{leg}_individual_pmf_convergence.png")
+    mkdir_if_required("analysis/individual")
+    fig.savefig(f"analysis/individual/{leg}_individual_pmf_convergence.png")

@@ -28,7 +28,7 @@ def get_lj_corr(input_file):
         correction = float(lines[0].split()[2])
         conf_int= float(lines[0].split()[4])
     except:
-        print("ERROR: LJ correction has likely failed")
+        print(f"ERROR: Unable to read {input_file}. LJ correction has likely failed")
         correction = 0
         conf_int = 0
         
@@ -104,6 +104,7 @@ def write_results_indiv(results):
         results (dict): Dictionary of results (possibly for several runs)
     """
     for run_name in results.keys():
+        mkdir_if_required("analysis")
         mkdir_if_required("analysis/results")
         mkdir_if_required(f"analysis/results/{run_name}")
 
@@ -123,6 +124,7 @@ def write_results_overall(results):
     Args:
         results (dict): Results dictionary
     """
+    mkdir_if_required("analysis")
     mkdir_if_required("analysis/results")
 
     tot_dict = {}

@@ -36,7 +36,7 @@ def plot_overlap_mats(leg="bound", run_nos=[1,2,3,4,5]):
         run_nos (list, optional): Run numbers for runs to plot. Defaults to [1,2,3,4,5].
     """
     print("###############################################################################################")
-    print("Plotting all PMFs")
+    print("Plotting all overlap matrices")
     
     paths = get_dir_paths(run_nos, leg)
     run_names = list(paths.keys())
@@ -55,5 +55,5 @@ def plot_overlap_mats(leg="bound", run_nos=[1,2,3,4,5]):
             plot_overlap_mat(ax, leg, stage, run_name, mbar_file, lam_vals)
         
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{leg}_overlap.png")
+    mkdir_if_required("analysis/individual")
+    fig.savefig(f"analysis/individual/{leg}_overlap.png")

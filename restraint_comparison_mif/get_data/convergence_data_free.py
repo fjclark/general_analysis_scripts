@@ -15,10 +15,9 @@ from ..save_data import mkdir_if_required
 CHUNKSIZE = 0.05  # ns - how far to separate each calculation of energies
 TIMESTEP = 0.000004  # ns
 NRGFREQ = 100  # How many steps between energy evaluations
-LEG = "bound"
+LEG = "free"
 RUN_NOS = [1, 2, 3, 4, 5]
-SIMTIME = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
-    "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3}}
+SIMTIME = {"discharge": {"wind_len": 6, "discard": 1}, "vanish": {"wind_len": 6, "discard": 1}} # ns
 
 
 def truncate_simfile(in_file, out_file, start_time, end_time):
@@ -126,7 +125,7 @@ def get_convergence_dict():
     print("###############################################################################################")
     print("Calculating convergence data and obtaining convergence dictionary")
 
-    paths = dir_paths.get_paths(RUN_NOS, LEG)
+    paths = dir_paths.get_dir_paths(RUN_NOS, LEG)
     conv_dict = {}
     
     for run in paths.keys():

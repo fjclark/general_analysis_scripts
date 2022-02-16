@@ -70,7 +70,7 @@ def get_lam_vals(output_dir):
         lam_vals (list): Lambda values in string format
     """
 
-    lam_dirs = [x for x in os.listdir(output_dir) if "lambda" in x]
+    lam_dirs = [x for x in os.listdir(output_dir) if (("lambda" in x) and ("_" not in x))] #remove commented dirs
     lam_dirs.sort()
     lam_vals = [x[-5:] for x in lam_dirs]  # assume format "lambda-0.500"
 

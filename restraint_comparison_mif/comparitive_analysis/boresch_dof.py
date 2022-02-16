@@ -308,8 +308,9 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
             ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
+    mkdir_if_required("analysis")
+    mkdir_if_required("analysis/boresch_dof")
+    fig.savefig(f"analysis/boresch_dof/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
 
 
 def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
@@ -353,8 +354,9 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
             ax.legend(loc=(1.04,0))
 
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
+    mkdir_if_required("analysis")
+    mkdir_if_required("analysis/boresch_dof")
+    fig.savefig(f"analysis/boresch_dof/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
 
 
 # Just seems to return whitespace (but no errors) if functions modified to return figures

@@ -35,8 +35,8 @@ def plot_all_pmfs(run_nos, leg):
         plot_conv(axs[i], leg, stage, lam_vals, pmfs, "$\lambda$", "$\Delta \it{G}$ / kcal.mol$^-$$^1$")
 
     fig.tight_layout()
-    mkdir_if_required("analysis/comparitive_analysis")
-    fig.savefig(f"analysis/comparitive_analysis/{leg}_pmf_comparison")
+    mkdir_if_required("analysis/overall_convergence")
+    fig.savefig(f"analysis/overall_convergence/{leg}_pmf_comparison")
 
 
 if __name__ == "__main__":
