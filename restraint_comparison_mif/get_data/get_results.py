@@ -88,6 +88,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5]):
                 if leg == "bound":
                     dg, conf_int = get_boresch_ana(f"{output_dir}/boresch_analytical_correction.dat")
                     results[run_name]["boresch_ana_corr"] = (dg, conf_int)
+                    results[run_name]["symm_corr"] = (0.65, 0)
             
         dg_tot = sum([x[0] for x in results[run_name].values()]) # Energy is first value in tuple
         var_tot = sum([x[1]**2 for x in results[run_name].values()])

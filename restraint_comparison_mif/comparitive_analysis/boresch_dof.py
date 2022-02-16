@@ -249,7 +249,7 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj):
     Returns:
         dict: dict of dof_dicts, with run names as keys
     """
-    if type(lam_val == float):
+    if type(lam_val) == float:
         lam_val = f"{lam_val:.3f}" # Account for input of float instead of string
     dof_dicts = {}
     paths = dir_paths.get_dir_paths(runs, leg)

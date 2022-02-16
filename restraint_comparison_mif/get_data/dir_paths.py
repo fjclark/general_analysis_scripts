@@ -41,7 +41,11 @@ def get_file_name(path, pattern):
     file_names = os.listdir(path)
     # pattern match to ignore comments on names
     r = re.compile(pattern)
-    name = list(filter(r.search, file_names))[0]
+    try:
+        name = list(filter(r.search, file_names))[0]
+    except:
+        print(f'Error: file matching "{pattern}" does not exist at "{path}"')
+        name="no_file"
 
     return name
 
