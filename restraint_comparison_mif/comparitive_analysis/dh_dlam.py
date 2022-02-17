@@ -117,4 +117,4 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100):
                 x_axis.set_visible(False)
         
     mkdir_if_required("analysis/overall_convergence")
-    fig.savefig(f'analysis/overall_convergence/{leg}_grads.png')
+    fig.savefig(f'analysis/overall_convergence/{leg}_grads.png',bbox_inches="tight")
