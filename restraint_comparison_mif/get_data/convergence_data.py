@@ -126,7 +126,7 @@ def get_convergence_dict():
     print("###############################################################################################")
     print("Calculating convergence data and obtaining convergence dictionary")
 
-    paths = dir_paths.get_paths(RUN_NOS, LEG)
+    paths = dir_paths.get_dir_paths(RUN_NOS, LEG)
     conv_dict = {}
     
     for run in paths.keys():
