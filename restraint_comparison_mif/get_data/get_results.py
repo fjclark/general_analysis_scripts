@@ -88,7 +88,9 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5]):
                 if leg == "bound":
                     dg, conf_int = get_boresch_ana(f"{output_dir}/boresch_analytical_correction.dat")
                     results[run_name]["boresch_ana_corr"] = (dg, conf_int)
-                    results[run_name]["symm_corr"] = (0.65, 0)
+                    # Symmetry corrections assume 298 K (RT = 0.592187)
+                    results[run_name]["symm_corr_binding_sites_298"] = (0.65, 0) # Three-fold symmetry of binding sites (so RTln3)
+                    results[run_name]["symm_corr_phenol_298"] = (0.41, 0) # Rotation of phenol hindered in binding site (so RTln2)
             
         dg_tot = sum([x[0] for x in results[run_name].values()]) # Energy is first value in tuple
         var_tot = sum([x[1]**2 for x in results[run_name].values()])
