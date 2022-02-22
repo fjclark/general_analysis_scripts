@@ -31,10 +31,10 @@ def get_av_waters(u, percent_traj, index, length, index2=-1, length2=-1):
     for frame in range(first_frame, n_frames):
         u.trajectory[frame]
         if index2 != -1:
-            print(f"Calculating av. no. waters within {length} A of index {index} and {length2} A of index {index2}")
+            #print(f"Calculating av. no. waters within {length} A of index {index} and {length2} A of index {index2}")
             no_close_waters.append(len(u.select_atoms(f'resname WAT and (sphzone {length} index {index}) and (sphzone {length2} index {index2})'))/3) # /3 as returns all atoms in water
         else:
-            print(f"Calculating av. no. waters within {length} A of index {index} ")
+            #print(f"Calculating av. no. waters within {length} A of index {index} ")
             no_close_waters.append(len(u.select_atoms(f'resname WAT and sphzone {length} index {index}'))/3) # /3 as returns all atoms in water
     avg_close_waters = sum(no_close_waters)/len(no_close_waters)
 
