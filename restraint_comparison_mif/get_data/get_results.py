@@ -35,8 +35,8 @@ def get_lj_corr(input_file):
     return correction,conf_int
 
 
-def get_boresch_ana(input_file):
-    """Finds analytical correction for releasing Boresch 
+def get_boresch_cor(input_file):
+    """Finds correction for releasing Boresch 
     restraints and returns correction as string
 
     Args:
@@ -45,15 +45,20 @@ def get_boresch_ana(input_file):
     Returns:
         energy: analytical correction for releasing restraints
     """
+    energy = 0
+    conf_int = 0 # Include this for consistency with other functions, which return non-zero SD
+
     with open(input_file,'r') as file:
         lines = file.readlines()
-        
+
     for i, line in enumerate(lines):
-        if line.startswith('Analytical correction for releasing Boresch restraints'):
+        if "correction for releasing Boresch restraints =" in line:
             energy=float(lines[i].split()[-3])
 
-    conf_int = 0 # Include this for consistency with other functions, which return non-zero SD
-            
+    if energy == 0:
+        print(f"ERROR: Unable to read {input_file}. Boresch analytical correction has likely failed")
+        energy = 0
+
     return energy, conf_int
 
 
@@ -86,13 +91,16 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5]):
                 results[run_name]["lj_corr"] = (dg, conf_int)
                 # TODO: Modify this to work if not Boresch 
                 if leg == "bound":
-                    dg, conf_int = get_boresch_ana(f"{output_dir}/boresch_analytical_correction.dat")
-                    results[run_name]["boresch_ana_corr"] = (dg, conf_int)
+                    dg_ana, conf_int_ana = get_boresch_cor(f"{output_dir}/boresch_analytical_correction.dat")
+                    results[run_name]["boresch_ana_corr"] = (dg_ana, conf_int_ana)
+                    dg_semi, conf_int_semi = get_boresch_cor(f"{output_dir}/boresch_semi-analytical_correction.dat")
+                    results[run_name]["boresch_semi-ana_corr"] = (dg_semi, conf_int_semi)
                     # Symmetry corrections assume 298 K (RT = 0.592187)
                     results[run_name]["symm_corr_binding_sites_298"] = (0.65, 0) # Three-fold symmetry of binding sites (so RTln3)
                     results[run_name]["symm_corr_phenol_298"] = (0.41, 0) # Rotation of phenol hindered in binding site (so RTln2)
             
-        dg_tot = sum([x[0] for x in results[run_name].values()]) # Energy is first value in tuple
+        
+        dg_tot = sum([val[0] for key, val in results[run_name].items() if key != "boresch_ana_corr"]) # Energy is first value in tuple.
         var_tot = sum([x[1]**2 for x in results[run_name].values()])
         ci_tot = np.sqrt(var_tot)
         results[run_name]["dg_tot"] = (dg_tot, ci_tot) 

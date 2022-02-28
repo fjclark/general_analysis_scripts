@@ -45,7 +45,9 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
 
     # RMSD for protein
     rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "protein")
-    # RMSD for syn-anti interconversion of ligand (ignore phenol group which is rotatable and adds noise)
+    # RMSD for ligand
+    rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "resname LIG and (not name H*)")
+    # RMSD for syn-anti interconversion of ligand (ignore phenol group for which is rotatable and adds noise)
     rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "resname LIG and (not name H* OAA CAS CAD CAF CAG CAP CAE)")
 
 
