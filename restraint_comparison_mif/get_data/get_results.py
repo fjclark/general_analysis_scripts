@@ -161,7 +161,8 @@ def write_results_overall(results):
         # Get C.I. by adding C.I.s in quadrature for individual contributions, rather than using C.I.s based on dg_tots
         # from all runs, as this results in the loss of information. NOTE: This relies on dg_tot being the last contribution
             conf_ints = np.array(conf_ints)
-            tot_dict[contribution]["95% C.I."] = np.sqrt(sum(conf_ints**2))
+            filtered_conf_ints = np.array([x for x in conf_ints if not np.isnan(x)])
+            tot_dict[contribution]["95% C.I."] = np.sqrt(sum(filtered_conf_ints**2))
 
 
     with open(f"analysis/results/results.txt", "wt") as f:

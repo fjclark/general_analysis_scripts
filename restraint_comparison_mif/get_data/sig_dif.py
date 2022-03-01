@@ -2,6 +2,7 @@
 significance of differences"""
 
 from asyncio import run
+from cmath import nan
 from .get_results import get_results
 import os
 import scipy.stats as st
@@ -29,7 +30,7 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
         dir_name = os.path.split(os.getcwd())[1] # Use dir name to name the dictionary - "." uninformative, for example
         results_dict = get_results(leg, run_nos)
         run_list = list(results_dict.keys())
-        overall_results_dict = {k:[] for k in results_dict[run_list][0]}
+        overall_results_dict = {k:[] for k in results_dict[run_list[0]]}
 
         for run in results_dict:
             results_subdict = results_dict[run]
@@ -89,7 +90,7 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
 
     dir1, dir2 = combined_results
     with open(f"{dir1}_{dir2}_sig_diff.txt", "wt") as f:
-        f.write(f"      {dir1}      {dir2}")
+        f.write(f"{dir1} compared to {dir2}, unpaired t-test assuming equal variances\n\n")
 
         stds_1 = []
         stds_2 = []
@@ -107,13 +108,17 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
                 # Because we get the C.I. based on the C.I.s of the components and not from the overall results 
                 # from each run (to preserve information), we have to calculate p manually from the variances
                 # NOTE: This assumes that dg_tot is the last contribution
+                stds_1 = np.array(stds_1)
+                stds_2 = np.array(stds_2)
                 n1 = len(stds_1)
                 n2 = len(stds_2)
+                #filtered_stds_1 = [x for x in stds1 if x != nan] 
+                #filtered_stds_2 = [x for x in stds2 if x != nan] 
                 sd_tot_1 = np.sqrt(sum(stds_1**2))
                 sd_tot_2 = np.sqrt(sum(stds_2**2))
                 p = independent_ttest(results_1.mean(), sd_tot_1, n1, results_2.mean(), sd_tot_2, n2)
 
             line = f"{contribution} = "
-            line += f"{results_1.mean()}, {results_2.mean()} "
-            line += f", t-test p = {p}"
+            line += f"{results_1.mean():.3f}, {results_2.mean():.3f} "
+            line += f", t-test p = {p:.3f}\n"
             f.write(line)
