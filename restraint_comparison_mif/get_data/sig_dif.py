@@ -120,5 +120,9 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
 
             line = f"{contribution} = "
             line += f"{results_1.mean():.3f}, {results_2.mean():.3f} "
-            line += f", t-test p = {p:.3f}\n"
+            line += f", t-test p = {p:.3f} "
+            if p < 0.05:
+                line += ",SIGNIFICANT DIFFERENCE AT 95 % CONFIDENCE\n"
+            else:
+                line += "\n"
             f.write(line)
