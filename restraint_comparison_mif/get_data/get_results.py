@@ -139,18 +139,30 @@ def write_results_overall(results):
     mkdir_if_required("analysis/results")
 
     tot_dict = {}
+    conf_ints = [] # Store C.I.s for all contributions and use these to work out C.I. for dg_tot
     run_names = list(results.keys())
     for contribution in results[run_names[0]]: # Use first run to check contributions to free energy
         tot_dict[contribution]={}
         tot_dict[contribution]["values"]=[]
         for run_name in run_names:
             tot_dict[contribution]["values"].append(results[run_name][contribution][0]) # Ignore SD from individual runs
-        tot_dict[contribution]["values"] =np.array(tot_dict[contribution]["values"])
 
+        tot_dict[contribution]["values"] =np.array(tot_dict[contribution]["values"])
         vals = tot_dict[contribution]["values"]
         tot_dict[contribution]["dg"] = vals.mean()
-        conf_int = st.t.interval(0.95, len(vals)-1, loc=np.mean(vals), scale=st.sem(vals))
-        tot_dict[contribution]["95% C.I."] = vals.mean() - conf_int[0] # Because C.I. returned as tuple (min, max) 
+
+        if contribution != "dg_tot":
+            conf_int = st.t.interval(0.95, len(vals)-1, loc=np.mean(vals), scale=st.sem(vals))
+            positive_conf_int = vals.mean() - conf_int[0] # Because C.I. returned as tuple (min, max)
+            tot_dict[contribution]["95% C.I."] = positive_conf_int
+            conf_ints.append(positive_conf_int)
+
+        elif contribution == "dg_tot":
+        # Get C.I. by adding C.I.s in quadrature for individual contributions, rather than using C.I.s based on dg_tots
+        # from all runs, as this results in the loss of information. NOTE: This relies on dg_tot being the last contribution
+            conf_ints = np.array(conf_ints)
+            tot_dict[contribution]["95% C.I."] = np.sqrt(sum(conf_ints**2))
+
 
     with open(f"analysis/results/results.txt", "wt") as f:
         f.write("Overall free energy estimates from MBAR:\n")
