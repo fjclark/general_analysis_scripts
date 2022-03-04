@@ -147,7 +147,7 @@ def write_results_overall(results):
         for run_name in run_names:
             tot_dict[contribution]["values"].append(results[run_name][contribution][0]) # Ignore SD from individual runs
 
-        tot_dict[contribution]["values"] =np.array(tot_dict[contribution]["values"])
+        tot_dict[contribution]["values"] =np.array([x for x in tot_dict[contribution]["values"] if np.isfinite(x)])
         vals = tot_dict[contribution]["values"]
         tot_dict[contribution]["dg"] = vals.mean()
 
@@ -161,7 +161,7 @@ def write_results_overall(results):
         # Get C.I. by adding C.I.s in quadrature for individual contributions, rather than using C.I.s based on dg_tots
         # from all runs, as this results in the loss of information. NOTE: This relies on dg_tot being the last contribution
             conf_ints = np.array(conf_ints)
-            filtered_conf_ints = np.array([x for x in conf_ints if not np.isnan(x)])
+            filtered_conf_ints = np.array([x for x in conf_ints if np.isfinite(x)])
             tot_dict[contribution]["95% C.I."] = np.sqrt(sum(filtered_conf_ints**2))
 
 
