@@ -74,7 +74,7 @@ def independent_ttest(mean1, sd1, n1, mean2, sd2, n2):
     return p
     
 
-def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5]):
+def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], offset_calc_2=0):
     """Carry out unpaired t-test assuming equal variances and write out p values. Note that the variance
     for dg_tot is calculated from the variances of the contributions, rather than from variation in dg_tot
     between runs, to avoid losing information.
@@ -84,20 +84,23 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
         calculation_2_path (str): Path to base directory of second set of calculations to be compared
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
+        offset_calc_2 (float): Add an offset to the total free energy for calculation 2 relative to
+        calculation run. This is needed in the case of different symmetry corrections between runs.
     """
 
     combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos)
 
     dir1, dir2 = combined_results
     with open(f"{dir1}_{dir2}_sig_diff.txt", "wt") as f:
-        f.write(f"{dir1} compared to {dir2}, unpaired t-test assuming equal variances\n\n")
+        f.write(f"{dir1} compared to {dir2}, unpaired t-test assuming equal variances\n")
+        f.write(f"Calculation 2 overall results offset by {offset_calc_2} kcal mol-1.\n\n")
 
         stds_1 = []
         stds_2 = []
 
         for contribution in combined_results[dir1]:
-            results_1 = np.array(combined_results[dir1][contribution])
-            results_2 = np.array(combined_results[dir2][contribution])
+            results_1 = np.array([x for x in combined_results[dir1][contribution] if np.isfinite(x)])
+            results_2 = np.array([x for x in combined_results[dir2][contribution] if np.isfinite(x)])
 
             if contribution != "dg_tot":
                 stds_1.append(results_1.std(ddof =1)) # Otherwise divides by n rather than n -1
@@ -108,21 +111,21 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
                 # Because we get the C.I. based on the C.I.s of the components and not from the overall results 
                 # from each run (to preserve information), we have to calculate p manually from the variances
                 # NOTE: This assumes that dg_tot is the last contribution
-                stds_1 = np.array(stds_1)
-                stds_2 = np.array(stds_2)
-                n1 = len(stds_1)
-                n2 = len(stds_2)
+                results_2 += offset_calc_2
+                stds_1 = np.array([x for x in stds_1 if np.isfinite(x) and  x!= 0])
+                stds_2 = np.array([x for x in stds_2 if np.isfinite(x) and x!= 0])
+                n = len(run_nos)
                 #filtered_stds_1 = [x for x in stds1 if x != nan] 
                 #filtered_stds_2 = [x for x in stds2 if x != nan] 
                 sd_tot_1 = np.sqrt(sum(stds_1**2))
                 sd_tot_2 = np.sqrt(sum(stds_2**2))
-                p = independent_ttest(results_1.mean(), sd_tot_1, n1, results_2.mean(), sd_tot_2, n2)
+                p = independent_ttest(results_1.mean(), sd_tot_1, n, results_2.mean(), sd_tot_2, n)
 
             line = f"{contribution} = "
             line += f"{results_1.mean():.3f}, {results_2.mean():.3f} "
-            line += f", t-test p = {p:.3f} "
+            line += f", t-test p = {p:.3f}"
             if p < 0.05:
-                line += ",SIGNIFICANT DIFFERENCE AT 95 % CONFIDENCE\n"
+                line += ", SIGNIFICANT DIFFERENCE AT 95 % CONFIDENCE\n"
             else:
                 line += "\n"
             f.write(line)
