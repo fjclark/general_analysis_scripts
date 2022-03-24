@@ -8,22 +8,22 @@ from .comparitive_analysis import compare_pmfs
 from .comparitive_analysis import overlap
 from .comparitive_analysis import indiv_pmf_conv
 from .comparitive_analysis import dh_dlam
-from .comparitive_analysis import boresch_dof
+from .comparitive_analysis import restrained_dof
 from .comparitive_analysis import rmsd
 from .comparitive_analysis import av_waters
 
-def run_analysis_bound(leg = "bound", run_nos=[1,2,3,4,5], calc_type="Boresch", timestep=4, nrg_freq=100,
+def run_analysis_bound(leg = "bound", run_nos=[1,2,3,4,5], restraint_type="Boresch", timestep=4, nrg_freq=100,
 percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5}):
 
     print("###############################################################################################")
-    print(f"Analysing the {leg} leg for runs: {run_nos} and calculation type = {calc_type}")
+    print(f"Analysing the {leg} leg for runs: {run_nos} and calculation type = {restraint_type}")
     print("Ensure you are in the base directory and the development version of biosimspace is activated")
 
     # Only calculate convergence data if this has not been done already
     if not os.path.isfile("analysis/convergence_data.pickle"):
         convergence_data.get_convergence_dict()
 
-    get_results.write_results(leg, run_nos)
+    get_results.write_results(leg, run_nos, restraint_type)
     compare_conv.plot_stages_conv("analysis/convergence_data.pickle", leg)
     compare_conv.plot_overall_conv("analysis/convergence_data.pickle", leg)
     compare_pmfs.plot_all_pmfs(run_nos, leg)
@@ -36,12 +36,25 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
     av_waters.plot_av_waters(leg, run_nos, stage="vanish", 
     percent_traj=percent_traj_dict["vanish"], index=1637,length=8, index2=34, length2=8)
 
-    # Plot Boresch DOF for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
-    plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
-    selected_dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC"]
-    for wind in plot_winds:
-        boresch_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], selected_dof_list)
-        boresch_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], selected_dof_list)
+    if restraint_type == "Boresch":
+        # Plot Boresch DOF for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
+        plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
+        selected_dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC"]
+        for wind in plot_winds:
+            restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                          selected_dof_list, restraint_type)
+            restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                         selected_dof_list, restraint_type)
+
+    elif restraint_type == "multiple_dist":
+        # Plot restrained distances for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
+        plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
+        selected_dof_list = []
+        for wind in plot_winds:
+            restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                          selected_dof_list, restraint_type)
+            restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                         selected_dof_list, restraint_type)
 
     # RMSD for protein
     rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "protein")

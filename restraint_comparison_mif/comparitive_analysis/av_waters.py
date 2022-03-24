@@ -2,7 +2,7 @@
 # of given reference for given stage (most likely bound vanish)
 
 import matplotlib.pyplot as plt
-from .boresch_dof import get_mda_universe
+from .restrained_dof import get_mda_universe
 from .compare_conv import plot_conv
 from ..get_data.dir_paths import get_dir_paths
 from ..save_data import mkdir_if_required

@@ -1,6 +1,7 @@
 # Functions to get histograms of Boresch degrees of freedom over
 # trajectories for specified value of lambda
 
+from math import ceil
 import MDAnalysis as mda
 from MDAnalysis.analysis.distances import dist
 from MDAnalysis.lib.distances import calc_dihedrals
@@ -33,6 +34,7 @@ def get_mda_universe(leg, run, stage, lam_val):
 
     return u
 
+
 def read_boresch_rest(cfg_file):
     """Read config file to extract Boresch restraints dict.
 
@@ -53,6 +55,28 @@ def read_boresch_rest(cfg_file):
             break
 
     return boresch_dict
+
+
+def read_multiple_dist_rest(cfg_file):
+    """Read config file to extract multiple distance restraints dict.
+
+    Args:
+        cfg_file (str): Path to config file
+
+    Returns:
+        dict: Multiple distance restraints dict
+    """
+    with open(cfg_file,"r") as istream:
+        lines = istream.readlines()
+
+    boresch_dict = {}
+    for l in lines:
+        if l.startswith("distance restraints dictionary"):
+            dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
+            multiple_dist_dict = literal_eval("".join(dict_as_list))
+            break
+
+    return multiple_dist_dict
 
 
 # Functions to get Boresch DOF
@@ -137,7 +161,25 @@ def get_boresch_dof(anchor_ats, u):
     return r, thetaA, thetaB, phiA, phiB, phiC, thetaR, thetaL
 
 
-def track_dof(anchor_ats, u, percent_traj):
+def get_multiple_dist_dof(multiple_dist_dict, u):
+    """Calculate the distances restrained by the multiple distance
+    restraints.
+
+    Args:
+        multiple_dist_dict (dict): The dictionary specifying the multiple
+        distance restraints
+        u (mda universe): System
+
+    Returns:
+        dict: dictionary of restrained pairs and the distances between them
+    """
+    multiple_dist_distances = {}
+    for pair in multiple_dist_dict:
+        multiple_dist_distances[pair] = get_distance(pair[0], pair[1], u)
+    return multiple_dist_distances
+
+
+def track_boresch_dof(anchor_ats, u, percent_traj):
     """Get values, mean, and standard deviation of Boresch
     degrees of freedom and internal angles defined by supplied
     anchor atoms. Also calculate total variance accross all DOF
@@ -234,7 +276,58 @@ def track_dof(anchor_ats, u, percent_traj):
     return dof_dict
 
 
-def get_dof_dicts(leg, runs, stage, lam_val, percent_traj):
+def track_multiple_dist_dof(multiple_dist_dict, u, percent_traj):
+    """Get values, mean, and standard deviation of distancese restrained
+    using multiple distance restraints.Also calculate total variance accross
+    all distances.
+
+    Args:
+        multiple_dist_dict (dict): The dictionary specifying the multiple
+        distance restraints
+        u (mda universe): The system
+        percent_traj (float): Percentage of run to average over (25 % would
+        result in intial 75 % of trajectory being discarded)
+
+    Returns:
+        dict: dictionary of form {"tot_var": tot_var, (ligand_anchor1, protein_anchor1):
+        {"mean":mean, "sd":sd, "values":[...]}, (ligand_anchor2, protein_anchor2):{...},...}
+    """
+    
+    n_frames = len(u.trajectory)
+    first_frame = round(n_frames - ((percent_traj/100)*n_frames)) # Index of first frame to be used for analysis
+
+    dof_dict = {}
+    # Add sub dictionaries for each distance
+    for pair in multiple_dist_dict:
+        dof_dict[pair]={}
+        dof_dict[pair]["values"]=[]
+
+    for i, frame in enumerate(u.trajectory):
+        if i >= first_frame:
+            if i == first_frame:
+                print(f"First frame no: {i+1}") # Convert index to number
+            multiple_dist_dists = get_multiple_dist_dof(multiple_dist_dict, u)
+            for pair in multiple_dist_dists:
+                dof_dict[pair]["values"].append(multiple_dist_dists[pair])
+
+            if i == n_frames-1:
+                print(f"Last frame no: {i+1}")
+                dof_dict["tot_var"]=0
+                for pair in dof_dict:
+                    if pair != "tot_var": # Check pair is actually pair
+                        dof_dict[pair]["values"]=np.array(dof_dict[pair]["values"])
+                        dof_dict[pair]["mean"]=dof_dict[pair]["values"].mean()
+                        dof_dict[pair]["sd"]=dof_dict[pair]["values"].std()
+                        dof_dict["tot_var"]+=dof_dict[pair]["sd"]**2
+                        # Assume Gaussian distributions and calculate "equivalent"
+                        # force constants for harmonic potentials
+                        # so as to reproduce these distributions
+                        dof_dict[pair]["k_equiv"]=0.593/(dof_dict[pair]["sd"]**2) # RT at 298 K is 0.593 kcal mol-1
+    
+    return dof_dict
+
+
+def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
     """Get dof_dicts for given stage and lambda value
     for all supplied runs
 
@@ -245,6 +338,7 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj):
         lam_val (str): Window of interest
         percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
+        dof_type (str): Boresch, multiple_dist
 
     Returns:
         dict: dict of dof_dicts, with run names as keys
@@ -259,37 +353,46 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj):
         dof_dicts[run_name] = {}
         u = get_mda_universe(leg, run, stage, lam_val)
         cfg_path = f'{paths[run_name][stage]["input"]}/sim.cfg'
-        boresch_dict = read_boresch_rest(cfg_path)
-        anchor_ats = tuple([x for x in boresch_dict["anchor_points"].values()])
-        dof_dict = track_dof(anchor_ats, u, percent_traj)
+        if dof_type == "Boresch":
+            boresch_dict = read_boresch_rest(cfg_path)
+            anchor_ats = tuple([x for x in boresch_dict["anchor_points"].values()])
+            dof_dict = track_boresch_dof(anchor_ats, u, percent_traj)
+        elif dof_type == "multiple_dist":
+            multiple_dist_dict = read_multiple_dist_rest(cfg_path)
+            dof_dict = track_multiple_dist_dof(multiple_dist_dict, u, percent_traj)
         dof_dicts[run_name]=dof_dict
 
     return dof_dicts
     
 
-def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
+def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, dof_type):
     """Plot histograms of selected degrees of freedom over specified
     final percentage of trajectory for supplied runs and lambda window.
 
     Args:
         leg (str): bound
-        runs (list): [
         runs (list): Run numbers (ints)
         stage ([type]): restrain, discharge, or vanish
         lam_val (str): Window of interest
         percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
-        selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
-        "phiC","thetaR","thetaL"]
+        selected_dof_list (list): For Boresch restraints, subset of ["r","thetaA",
+        "thetaB","phiA","phiB","phiC","thetaR","thetaL"] to be plotted. For multiple
+        distance restraints, this defaults to all pairs if the supplied list is empty.
+        dof_type (str): Boresch, multiple_dist
     """
     print("###############################################################################################")
-    print(f"Plotting histograms for Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
+    print(f"Plotting histograms for {dof_type} DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
 
-    dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj)
+    dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type)
+    if dof_type == "multiple_dist" and selected_dof_list == []: # Select all pairs
+        run_names = [run_name for run_name in dof_dicts]
+        selected_dof_list = [pair for pair in dof_dicts[run_names[0]] if pair != "tot_var"]
     no_dof = len(selected_dof_list)
 
-    fig, axs = plt.subplots(1, no_dof, figsize=(4*no_dof,4), dpi=1000)
+    fig, axs = plt.subplots(ceil(no_dof/6), 6, figsize=(4*6,4*ceil(no_dof/6)), dpi=500)
     colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
+    axs = axs.flatten()
 
     for j, run in enumerate(runs):
         run_name = dir_paths.get_run_name(run,leg)
@@ -302,6 +405,8 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
             ax.axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r":
                 ax.set_xlabel("r ($\AA$)")
+            elif type(dof) == tuple:
+                ax.set_xlabel(f"Dist between indices {dof[0]} and {dof[1]}")
             else:
                 ax.set_xlabel(f"{dof} (rad)")
             ax.set_ylabel("Counts")
@@ -309,11 +414,11 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
 
     fig.tight_layout()
     mkdir_if_required("analysis")
-    mkdir_if_required("analysis/boresch_dof")
-    fig.savefig(f"analysis/boresch_dof/{leg}_{stage}_{lam_val}_boresch_dof_hists.png")
+    mkdir_if_required(f"analysis/{dof_type}_dof")
+    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val}_{dof_type}_dof_hists.png")
 
 
-def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
+def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, dof_type):
     """Plot values of selected degrees of freedom over specified
     final percentage of trajectory for supplied runs and lambda window.
 
@@ -327,15 +432,20 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
         result in intial 75 % of trajectory being discarded)
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
+        dof_type (str): Boresch, multiple_dist
     """
     print("###############################################################################################")
     print(f"Plotting values of Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
 
-    dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj)
+    dof_dicts = get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type)
+    if dof_type == "multiple_dist" and selected_dof_list == []: # Select all pairs
+        run_names = [run_name for run_name in dof_dicts]
+        selected_dof_list = [pair for pair in dof_dicts[run_names[0]] if pair != "tot_var"]
     no_dof = len(selected_dof_list)
 
-    fig, axs = plt.subplots(1, no_dof, figsize=(4*no_dof,4), dpi=1000)
+    fig, axs = plt.subplots(ceil(no_dof/6), 6, figsize=(4*6,4*ceil(no_dof/6)), dpi=500)
     colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
+    axs = axs.flatten()
 
     for j, run in enumerate(runs):
         run_name = dir_paths.get_run_name(run,leg)
@@ -348,6 +458,8 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
             ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r":
                 ax.set_ylabel("r ($\AA$)")
+            elif type(dof) == tuple:
+                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}")
             else:
                 ax.set_ylabel(f"{dof} (rad)")
             ax.set_xlabel("Frame No")
@@ -355,8 +467,8 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list):
 
     fig.tight_layout()
     mkdir_if_required("analysis")
-    mkdir_if_required("analysis/boresch_dof")
-    fig.savefig(f"analysis/boresch_dof/{leg}_{stage}_{lam_val}_boresch_dof_vals.png")
+    mkdir_if_required(f"analysis/{dof_type}_dof")
+    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val}_{dof_type}_dof_vals.png")
 
 
 # Just seems to return whitespace (but no errors) if functions modified to return figures

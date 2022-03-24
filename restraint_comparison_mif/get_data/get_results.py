@@ -26,7 +26,7 @@ def get_lj_corr(input_file):
             lines = file.readlines()
         correction = float(lines[0].split()[2])
         conf_int= float(lines[0].split()[4])
-        if (not np.isfinite(correction)) or (not numpy.isfinite(conf_int)):
+        if (not np.isfinite(correction)) or (not np.isfinite(conf_int)):
             raise Exception()
 
     except:
@@ -37,15 +37,16 @@ def get_lj_corr(input_file):
     return correction,conf_int
 
 
-def get_boresch_cor(input_file):
-    """Finds correction for releasing Boresch 
+def get_restraint_cor(input_file, restraint_type):
+    """Finds correction for releasing 
     restraints and returns correction as string
 
     Args:
         input_file (str): Input file
+        restraint_type (str): Boresch or multiple_dist
 
     Returns:
-        energy: analytical correction for releasing restraints
+        energy: correction for releasing restraints
     """
     energy = 0
     conf_int = 0 # Include this for consistency with other functions, which return non-zero SD
@@ -54,23 +55,28 @@ def get_boresch_cor(input_file):
         lines = file.readlines()
 
     for i, line in enumerate(lines):
-        if "correction for releasing Boresch restraints =" in line:
-            energy=float(lines[i].split()[-3])
+        if restraint_type == "Boresch":
+            if "correction for releasing Boresch restraints =" in line:
+                energy=float(lines[i].split()[-3])
+        elif restraint_type == "multiple_dist":
+            if "Free energy change upon removing the restraint" in line:
+                energy=float(lines[i].split()[-2])
 
     if energy == 0:
-        print(f"ERROR: Unable to read {input_file}. Boresch analytical correction has likely failed")
+        print(f"ERROR: Unable to read {input_file}. Correction has likely failed")
         energy = 0
 
     return energy, conf_int
 
 
-def get_results(leg = "bound", run_nos = [1,2,3,4,5]):
+def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
     """Get the MBAR free energy estimates and standard deviations
     associated with all stages in a given leg for the supplied runs
 
     Args:
         leg (str, optional): Free or bound. Defaults to "bound".
         run_nos (list, optional): List of int run numbers. Defaults to [1,2,3,4,5].
+        restraint_type (str): Boresch or multiple_dist
 
     Returns:
         dict: Dictionary of form {"run001":{"vanish":dg, "restrain":dg, "lj_corr":dg,...} ,...}
@@ -91,18 +97,26 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5]):
                 output_dir = paths[run_name][stage]["output"]
                 dg, conf_int = get_lj_corr(f"{output_dir}/freenrg-LJCOR.dat")
                 results[run_name]["lj_corr"] = (dg, conf_int)
-                # TODO: Modify this to work if not Boresch 
                 if leg == "bound":
-                    dg_ana, conf_int_ana = get_boresch_cor(f"{output_dir}/boresch_analytical_correction.dat")
-                    results[run_name]["boresch_ana_corr"] = (dg_ana, conf_int_ana)
-                    dg_semi, conf_int_semi = get_boresch_cor(f"{output_dir}/boresch_semi-analytical_correction.dat")
-                    results[run_name]["boresch_semi-ana_corr"] = (dg_semi, conf_int_semi)
+                    if restraint_type == "Borsch":
+                        dg_ana, conf_int_ana = get_restraint_cor(f"{output_dir}/boresch_analytical_correction.dat",
+                                                                restraint_type="Boresch")
+                        results[run_name]["boresch_ana_corr"] = (dg_ana, conf_int_ana)
+                        dg_semi, conf_int_semi = get_restraint_cor(f"{output_dir}/boresch_semi-analytical_correction.dat",
+                                                                    restraint_type="Boresch")
+                        results[run_name]["boresch_semi-ana_corr"] = (dg_semi, conf_int_semi)
+                    elif restraint_type == "multiple_dist":
+                        dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/standard-state-s-1-b-4-d-0.25-o-6.dat",
+                                                                restraint_type="multiple_dist")
+                        results[run_name]["multiple_dist_corr"] = (dg_cor, conf_int_cor)
+
                     # Symmetry corrections assume 298 K (RT = 0.592187)
                     results[run_name]["symm_corr_binding_sites_298"] = (0.65, 0) # Three-fold symmetry of binding sites (so RTln3)
                     #results[run_name]["symm_corr_phenol_298"] = (0.41, 0) # Rotation of phenol hindered in binding site (so RTln2)
             
         
         dg_tot = sum([val[0] for key, val in results[run_name].items() if key != "boresch_ana_corr"]) # Energy is first value in tuple.
+                                                                                                      # Avoid adding two Boresch corrections.
         var_tot = sum([x[1]**2 for x in results[run_name].values()])
         ci_tot = np.sqrt(var_tot)
         results[run_name]["dg_tot"] = (dg_tot, ci_tot) 
@@ -176,16 +190,17 @@ def write_results_overall(results):
             f.write(f"{contribution}: {dg:.2f} +/- {conf:.2f} kcal/mol\n")
 
 
-def write_results(leg="bound", run_nos = [1,2,3,4,5]):
+def write_results(leg="bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
     """Retrieve results for given leg for all supplied runs.
     Save individual summary and overall summary with 95 % C.I.s
 
     Args:
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): List of run numbers (ints). Defaults to [1,2,3,4,5].
+        restraint_type (str): Boresch or multiple_dist
     """
     print("###############################################################################################")
     print("Writing results")
-    results = get_results(leg, run_nos)
+    results = get_results(leg, run_nos, restraint_type)
     write_results_indiv(results)
     write_results_overall(results)
