@@ -98,7 +98,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
                 dg, conf_int = get_lj_corr(f"{output_dir}/freenrg-LJCOR.dat")
                 results[run_name]["lj_corr"] = (dg, conf_int)
                 if leg == "bound":
-                    if restraint_type == "Borsch":
+                    if restraint_type == "Boresch":
                         dg_ana, conf_int_ana = get_restraint_cor(f"{output_dir}/boresch_analytical_correction.dat",
                                                                 restraint_type="Boresch")
                         results[run_name]["boresch_ana_corr"] = (dg_ana, conf_int_ana)
