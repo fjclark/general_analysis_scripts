@@ -692,7 +692,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
             sd = dof_dicts[run_name][dof]["sd"]
             ax.hist(values,label = f"{run_name}", color=colours[j], edgecolor='k')
             ax.axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
-            if dof == "r" or dof[2] == "r":
+            if dof == "r" or dof[1] == "r":
                 ax.set_xlabel("r ($\AA$)")
             elif type(dof) == tuple:
                 ax.set_xlabel(f"Dist between indices {dof[0]} and {dof[1]}")
@@ -745,7 +745,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
             sd = dof_dicts[run_name][dof]["sd"]
             ax.plot([x for x in range(len(values))], values, label = f"{run_name}", color=colours[j])
             ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
-            if dof == "r" or dof[2] == "r":
+            if dof == "r" or dof[1] == "r":
                 ax.set_ylabel("r ($\AA$)")
             elif type(dof) == tuple:
                 ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}")
