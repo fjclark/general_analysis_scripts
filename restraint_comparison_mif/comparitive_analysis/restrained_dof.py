@@ -35,51 +35,44 @@ def get_mda_universe(leg, run, stage, lam_val):
     return u
 
 
-def read_boresch_rest(cfg_file):
-    """Read config file to extract Boresch restraints dict.
+def read_rest_dict(cfg_file, rest_type):
+    """Read config file to extract restraints dict.
 
     Args:
         cfg_file (str): Path to config file
+        rest_type (str): Type of dictionary to read, of multiple_dist, 
+        Boresch, or Cartesian
 
     Returns:
-        dict: Boresch restraints dict
+        rest_dict: Restraints dictionary, as supplied in the config file
     """
     with open(cfg_file,"r") as istream:
         lines = istream.readlines()
 
-    boresch_dict = {}
+    rest_dict = {}
     for l in lines:
-        if l.startswith("boresch restraints dictionary"):
-            dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
-            boresch_dict = literal_eval("".join(dict_as_list))
-            break
+        if rest_type == "multiple_dist":
+            if l.startswith("distance restraints dictionary"):
+                dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
+                rest_dict = literal_eval("".join(dict_as_list))
+                break
 
-    return boresch_dict
+        if rest_type == "Boresch":
+            if l.startswith("boresch restraints dictionary"):
+                dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
+                rest_dict = literal_eval("".join(dict_as_list))
+                break
+        
+        if rest_type == "Cartesian":
+            if l.startswith("cartesian restraints dictionary"):
+                dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
+                rest_dict = literal_eval("".join(dict_as_list))
+                break
 
-
-def read_multiple_dist_rest(cfg_file):
-    """Read config file to extract multiple distance restraints dict.
-
-    Args:
-        cfg_file (str): Path to config file
-
-    Returns:
-        dict: Multiple distance restraints dict
-    """
-    with open(cfg_file,"r") as istream:
-        lines = istream.readlines()
-
-    boresch_dict = {}
-    for l in lines:
-        if l.startswith("distance restraints dictionary"):
-            dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
-            multiple_dist_dict = literal_eval("".join(dict_as_list))
-            break
-
-    return multiple_dist_dict
+    return rest_dict
 
 
-# Functions to get Boresch DOF
+# Functions to get restrained DOF
 
 def get_distance(idx1, idx2, u):
     """Distance between two atoms in Angstrom
@@ -277,7 +270,7 @@ def track_boresch_dof(anchor_ats, u, percent_traj):
 
 
 def track_multiple_dist_dof(multiple_dist_dict, u, percent_traj):
-    """Get values, mean, and standard deviation of distancese restrained
+    """Get values, mean, and standard deviation of distances restrained
     using multiple distance restraints.Also calculate total variance accross
     all distances.
 
@@ -327,6 +320,297 @@ def track_multiple_dist_dof(multiple_dist_dict, u, percent_traj):
     return dof_dict
 
 
+# Functions required for tracking Cartesian degrees of freeedom
+
+def get_coord_sys(idx1, idx2, idx3, u):
+    # Origin
+    orig = u.atoms[idx1].position
+    # Get x axis
+    X_unnorm = u.atoms[idx2].position - u.atoms[idx1].position
+    X = X_unnorm/norm(X_unnorm)
+    # Get y axis plane - not orthogonal to X
+    Y_plane = u.atoms[idx3].position - u.atoms[idx2].position # Lies in x-y plane but not orthogonal to x
+    # Z axis is perpendicular to plane made by X and Y_plane
+    Z_unnorm = np.cross(X, Y_plane)
+    Z = Z_unnorm/norm(Z_unnorm)
+    # Compute Y to be orthogonal to X and Z
+    Y_unnorm = -np.cross(X, Z) # Negative because need to use left-hand rule. Should be normalised already, but normalise anayway.
+    Y = Y_unnorm/norm(Y_unnorm)
+
+    return orig, X, Y, Z   
+
+class CoordSys:
+    def __init__(self, idx1, idx2, idx3, u):
+        self.idx1, self.idx2, self.idx3 = idx1, idx2, idx3
+        self.orig, self.X, self.Y, self.Z = get_coord_sys(idx1, idx2, idx3, u)
+        self.offset_coords = None
+        self.already_offset = False
+
+    def get_point_pos(self, point):
+        """Get the position of a point in the coordinate system"""
+        # Get vector to point based on coordinate system origin
+        P = point - self.orig
+        x = np.dot(self.X, P)
+        y = np.dot(self.Y, P)
+        z = np.dot(self.Z, P)
+        return(x, y, z)
+
+    def get_coord_sys_pos(self, ref_coord_sys):
+        """Get position of reference coordinate system in frame of
+        reference of current coordinate system
+
+        Args:
+            ref_coord_sys (CoordSys): The reference coordinate system whose
+            position is to be described by the current coordinate system
+        """
+        positions = {"X":{}, "Y":{}, "Z":{}}
+        positions["X"]["local_x"] = np.dot(ref_coord_sys.X, self.X) 
+        positions["X"]["local_y"] = np.dot(ref_coord_sys.X, self.Y) 
+        positions["X"]["local_z"] = np.dot(ref_coord_sys.X, self.Z) 
+        positions["Y"]["local_x"] = np.dot(ref_coord_sys.Y, self.X)
+        positions["Y"]["local_y"] = np.dot(ref_coord_sys.Y, self.Y)
+        positions["Y"]["local_z"] = np.dot(ref_coord_sys.Y, self.Z)
+        positions["Z"]["local_x"] = np.dot(ref_coord_sys.Z, self.X)
+        positions["Z"]["local_y"] = np.dot(ref_coord_sys.Z, self.Y)
+        positions["Z"]["local_z"] = np.dot(ref_coord_sys.Z, self.Z)
+        return positions
+    
+    def get_offset(self, ref_coord_sys, u):
+        """Get the offset required to superimpose the current 
+        coordinate system on a reference coordinate
+        system, based on the average position over
+        the course of a trajectory.
+
+        Args:
+            ref_coord_sys (CoordSys): Reference coordinate system
+            u (mda.universe): Universe
+
+        Returns:
+            (dict): Average positions of reference system in frame of 
+            reference of self
+        """
+        positions = {"X":{"local_x":[],"local_y":[], "local_z":[]},
+                    "Y":{"local_x":[],"local_y":[], "local_z":[]}, 
+                    "Z":{"local_x":[],"local_y":[], "local_z":[]}}
+        
+        for frame in u.trajectory:
+            self.update(u)
+            ref_coord_sys.update(u)
+            current_positions = self.get_coord_sys_pos(ref_coord_sys)
+            for axis in positions:
+                for local_coord in positions[axis]:
+                    positions[axis][local_coord].append(current_positions[axis][local_coord])
+
+        for axis in positions:
+            for local_coord in positions[axis]:
+                positions[axis][local_coord] = np.array(positions[axis][local_coord]).mean()
+
+        return positions
+
+
+    def recalculate_offset(self):
+        """Recompute offset to ensure resultant axes are orthogonal and have norms of 1
+        Necessary because slight drift can occur during the offset calculation"""
+        offset_coords = self.offset_coords
+        #print(offset_coords)
+        X_temp = []
+        Y_temp = []
+        Z_temp = []
+        for local_coord in offset_coords["X"]:
+            X_temp.append(offset_coords["X"][local_coord])
+        for local_coord in offset_coords["Y"]:
+            Y_temp.append(offset_coords["Y"][local_coord])
+        for local_coord in offset_coords["Z"]:
+            Z_temp.append(offset_coords["Z"][local_coord])
+        X_temp, Y_temp, Z_temp = np.array(X_temp), np.array(Y_temp), np.array(Z_temp)
+        X_unnorm = X_temp
+        X = X_unnorm/norm(X_unnorm)
+        # Get y axis plane - not orthogonal to X
+        Y_plane = Y_temp
+        # Z axis is perpendicular to plane made by X and Y_plane
+        Z_unnorm = np.cross(X, Y_plane)
+        Z = Z_unnorm/norm(Z_unnorm)
+        # Compute Y to be orthogonal to X and Z
+        Y_unnorm = -np.cross(X, Z) # Negative because need to use left-hand rule. Should be normalised already.
+        Y = Y_unnorm/norm(Y_unnorm)
+
+        # Now write back to offset_coords
+        for i, local_coord in enumerate(offset_coords["X"]):
+            offset_coords["X"][local_coord] = X[i]
+        for i, local_coord in enumerate(offset_coords["Y"]):
+            offset_coords["Y"][local_coord] = Y[i]
+        for i, local_coord in enumerate(offset_coords["Z"]):
+            offset_coords["Z"][local_coord] =Z[i]
+        #print(offset_coords)
+        self.offset_coords = offset_coords
+        
+
+    def offset(self, ref_coord_sys, u):
+        """Offset the coordinate system to superimpose on a reference
+        coordinate system.
+
+        Args:
+            ref_coord_sys (CoordSys): Reference coordinate system
+            u (mda.universe): Universe
+        """
+        if not self.already_offset:
+            self.offset_coords = self.get_offset(ref_coord_sys, u)
+            self.recalculate_offset()
+            temp_X = self.X*self.offset_coords["X"]["local_x"] + self.Y*self.offset_coords["X"]["local_y"] + self.Z*self.offset_coords["X"]["local_z"]
+            temp_Y = self.X*self.offset_coords["Y"]["local_x"] + self.Y*self.offset_coords["Y"]["local_y"] + self.Z*self.offset_coords["Y"]["local_z"]
+            temp_Z = self.X*self.offset_coords["Z"]["local_x"] + self.Y*self.offset_coords["Z"]["local_y"] + self.Z*self.offset_coords["Z"]["local_z"]
+            self.X, self.Y, self.Z = temp_X, temp_Y, temp_Z
+            #print(self.X, self.Y, self.Z)
+            #print(self.X, self.Y, self.Z)
+            #try:
+                #self.check_valid(self.X, self.Y, self.Z)
+            #except Exception as e:
+                #print(e.with_traceback)
+                #print(offset_coords)
+            self.already_offset = True
+        else:
+            raise Exception("Axis has already been offset") 
+
+
+    def update(self, u):
+        self.orig, self.X, self.Y, self.Z = get_coord_sys(self.idx1, self.idx2, self.idx3, u)
+        if self.already_offset:
+            temp_X = self.X*self.offset_coords["X"]["local_x"] + self.Y*self.offset_coords["X"]["local_y"] + self.Z*self.offset_coords["X"]["local_z"]
+            temp_Y = self.X*self.offset_coords["Y"]["local_x"] + self.Y*self.offset_coords["Y"]["local_y"] + self.Z*self.offset_coords["Y"]["local_z"]
+            temp_Z = self.X*self.offset_coords["Z"]["local_x"] + self.Y*self.offset_coords["Z"]["local_y"] + self.Z*self.offset_coords["Z"]["local_z"]
+            self.X, self.Y, self.Z = temp_X, temp_Y, temp_Z
+        self.check_valid(self.X, self.Y, self.Z)
+
+
+    def get_euler_angles(self, ref_coord_sys, u):
+        """Get the Euler angles (factored as RzRyRx, see implementation
+        in Sire) describing the rotation of the reference coordinate
+        system with respect to the current system.
+
+        Args:
+            ref_coord_sys (CoordSys): Reference coordinate system
+            u (mda.universe): Universe
+
+        Returns:
+            floats: Euler angles phi, theta, psi
+        """
+        positions = self.get_coord_sys_pos(ref_coord_sys)
+        phi = np.arctan2(positions["Y"]["local_x"], positions["X"]["local_x"]) # [-pi, pi]
+        theta = np.arcsin(- positions["Z"]["local_x"]) # [0, pi]
+        psi = np.arctan2(positions["Z"]["local_y"], positions["Z"]["local_z"]) # [-pi, pi]
+
+        return phi, theta, psi
+
+    @staticmethod
+    def check_valid(X, Y, Z):
+        # Norms == 1
+        assert(round(norm(X), 4) == 1.0)
+        assert(round(norm(Y), 4) == 1.0)
+        assert(round(norm(Y), 4) == 1.0)
+        # Orthogonal
+        assert(round(np.dot(X, Y), 4) == 0)
+        assert(round(np.dot(X, Z), 4) == 0)
+        assert(round(np.dot(Y, Z), 4) == 0)
+
+        return True
+        
+
+def get_cart_dof(lig_sys, recept_sys, u):
+    xr_l1, xr_l2, xr_l3 = recept_sys.get_point_pos(lig_sys.orig)
+    phi, theta, psi = recept_sys.get_euler_angles(lig_sys, u)
+    return xr_l1, xr_l2, xr_l3, phi, theta, psi
+
+
+def track_cartesian_dof(anchor_ats, u, percent_traj):
+    """Get values, mean, and standard deviation of Cartesian
+    degrees of freedom and internal angles defined by supplied
+    anchor atoms. Also calculate total variance accross all DOF
+    , neglecting the internal angles.
+
+    Args:
+        anchor_ats (tuple): Anchor atom indices, of form (r1,r2,r3,l1,l2,l3)
+        u (mda universe): The system
+        percent_traj (float): Percentage of run to average over (25 % would
+        result in intial 75 % of trajectory being discarded)
+
+    Returns:
+        dict: dictionary of form {"tot_var": tot_var, dof1 :{"mean":mean, "sd":sd,
+         "values":[...]}, dof2:{...},...}
+    """
+    
+    r1,r2,r3,l1,l2,l3 = anchor_ats
+    n_frames = len(u.trajectory)
+    first_frame = round(n_frames - ((percent_traj/100)*n_frames)) # Index of first frame to be used for analysis
+    
+    dof_dict = {}
+    dof_list = ["xr_l1","yr_l1","zr_l1","phi","theta","psi","thetaL","thetaR"]
+    # Add sub dictionaries for each Boresch degree of freedom
+    for dof in dof_list:
+        dof_dict[dof]={}
+        dof_dict[dof]["values"]=[]
+
+    # Get Coordinate systems and set offset for ligand coordinate system
+    recept_sys = CoordSys(r1, r2, r3, u)
+    lig_sys = CoordSys(l1, l2, l3, u)
+    lig_sys.offset(recept_sys, u)
+    dof_dict["offset"] = lig_sys.offset_coords
+
+
+    # Populate these dictionaries with values from trajectory
+    n_frames = len(u.trajectory)
+
+    for i, frame in enumerate(u.trajectory):
+        lig_sys.update(u)
+        recept_sys.update(u)
+        xr_l1, yr_l1, zr_l1, phi, theta, psi = get_cart_dof(lig_sys, recept_sys, u)
+        thetaL = get_angle(r1, r2, r3, u)
+        thetaR = get_angle(l1, l2, l3, u)
+        dof_dict["xr_l1"]["values"].append(xr_l1)
+        dof_dict["yr_l1"]["values"].append(yr_l1)
+        dof_dict["zr_l1"]["values"].append(zr_l1)
+        dof_dict["phi"]["values"].append(phi)
+        dof_dict["theta"]["values"].append(theta)
+        dof_dict["psi"]["values"].append(psi)
+        dof_dict["thetaL"]["values"].append(thetaL)
+        dof_dict["thetaR"]["values"].append(thetaR)
+
+
+    for i, frame in enumerate(u.trajectory):
+        if i >= first_frame:
+            if i == first_frame:
+                print(f"First frame no: {i+1}")
+            lig_sys.update(u)
+            recept_sys.update(u)
+            xr_l1, yr_l1, zr_l1, phi, theta, psi = get_cart_dof(lig_sys, recept_sys, u)
+            thetaL = get_angle(r1, r2, r3, u)
+            thetaR = get_angle(l1, l2, l3, u)
+            dof_dict["xr_l1"]["values"].append(xr_l1)
+            dof_dict["yr_l1"]["values"].append(yr_l1)
+            dof_dict["zr_l1"]["values"].append(zr_l1)
+            dof_dict["phi"]["values"].append(phi)
+            dof_dict["theta"]["values"].append(theta)
+            dof_dict["psi"]["values"].append(psi)
+            dof_dict["thetaL"]["values"].append(thetaL)
+            dof_dict["thetaR"]["values"].append(thetaR)
+
+            if i == n_frames-1:
+                print(f"Last frame no: {i+1}")
+                dof_dict["tot_var"]=0
+                for dof in dof_list:
+                    dof_dict[dof]["values"]=np.array(dof_dict[dof]["values"])
+                    dof_dict[dof]["mean"]=dof_dict[dof]["values"].mean()
+                    dof_dict[dof]["sd"]=dof_dict[dof]["values"].std()
+                    # Exclude variance of internal angles as these are not restrained
+                    if (dof != "thetaR" and dof != "thetaL"):
+                        dof_dict["tot_var"]+=dof_dict[dof]["sd"]**2
+                    # Assume Gaussian distributions and calculate "equivalent"
+                    # force constants for harmonic potentials
+                    # so as to reproduce these distributions
+                    dof_dict[dof]["k_equiv"]=0.593/(dof_dict[dof]["sd"]**2) # RT at 298 K is 0.593 kcal mol-1
+    
+    return dof_dict
+
+
 def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
     """Get dof_dicts for given stage and lambda value
     for all supplied runs
@@ -338,7 +622,7 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
         lam_val (str): Window of interest
         percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
-        dof_type (str): Boresch, multiple_dist
+        dof_type (str): Boresch, multiple_dist, Cartesian
 
     Returns:
         dict: dict of dof_dicts, with run names as keys
@@ -353,13 +637,18 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
         dof_dicts[run_name] = {}
         u = get_mda_universe(leg, run, stage, lam_val)
         cfg_path = f'{paths[run_name][stage]["input"]}/sim.cfg'
+        dof_dict = {}
         if dof_type == "Boresch":
-            boresch_dict = read_boresch_rest(cfg_path)
-            anchor_ats = tuple([x for x in boresch_dict["anchor_points"].values()])
+            rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
+            anchor_ats = tuple([x for x in rest_dict["anchor_points"].values()])
             dof_dict = track_boresch_dof(anchor_ats, u, percent_traj)
-        elif dof_type == "multiple_dist":
-            multiple_dist_dict = read_multiple_dist_rest(cfg_path)
-            dof_dict = track_multiple_dist_dof(multiple_dist_dict, u, percent_traj)
+        if dof_type == "multiple_dist":
+            rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
+            dof_dict = track_multiple_dist_dof(rest_dict, u, percent_traj)
+        elif dof_type == "Cartesian":
+            rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
+            anchor_ats = tuple([x for x in rest_dict["anchor_points"].values()])
+            dof_dict = track_cartesian_dof(anchor_ats, u, percent_traj)
         dof_dicts[run_name]=dof_dict
 
     return dof_dicts
@@ -379,7 +668,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
         selected_dof_list (list): For Boresch restraints, subset of ["r","thetaA",
         "thetaB","phiA","phiB","phiC","thetaR","thetaL"] to be plotted. For multiple
         distance restraints, this defaults to all pairs if the supplied list is empty.
-        dof_type (str): Boresch, multiple_dist
+        dof_type (str): Boresch, multiple_dist, Cartesian
     """
     print("###############################################################################################")
     print(f"Plotting histograms for {dof_type} DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
@@ -403,7 +692,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
             sd = dof_dicts[run_name][dof]["sd"]
             ax.hist(values,label = f"{run_name}", color=colours[j], edgecolor='k')
             ax.axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
-            if dof == "r":
+            if dof == "r" or dof[2] == "r":
                 ax.set_xlabel("r ($\AA$)")
             elif type(dof) == tuple:
                 ax.set_xlabel(f"Dist between indices {dof[0]} and {dof[1]}")
@@ -432,7 +721,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
         result in intial 75 % of trajectory being discarded)
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
-        dof_type (str): Boresch, multiple_dist
+        dof_type (str): Boresch, multiple_dist, Cartesian
     """
     print("###############################################################################################")
     print(f"Plotting values of Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")
@@ -456,7 +745,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
             sd = dof_dicts[run_name][dof]["sd"]
             ax.plot([x for x in range(len(values))], values, label = f"{run_name}", color=colours[j])
             ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
-            if dof == "r":
+            if dof == "r" or dof[2] == "r":
                 ax.set_ylabel("r ($\AA$)")
             elif type(dof) == tuple:
                 ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}")
