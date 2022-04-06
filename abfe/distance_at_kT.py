@@ -7,7 +7,7 @@ from numpy import sqrt
 
 # Constants
 kT = 0.593 # kcal mol-1 at 298 K
-k = int(sys.argv[1])
+k = float(sys.argv[1])
 
 def dist_at_kT(force_const):
     """Calculate distance (A) corresponding to energy penalty of 1kT at 298 K with

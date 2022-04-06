@@ -5,7 +5,10 @@ from parmed.amber import *
 
 if __name__ == "__main__":
 
-     base = AmberParm("SYSTEM.top","SYSTEM.crd")
+     if sys.argv[1] and sys.argv[2]:
+         base = AmberParm(sys.argv[1], sys.argv[2])
+     else:
+         base = AmberParm("SYSTEM.top","SYSTEM.crd")
      atoms = base.residues[0].atoms
      natoms = len(atoms)
      fout = open("MORPH.discharge.pert", "w")
