@@ -41,7 +41,7 @@ def read_rest_dict(cfg_file, rest_type):
     Args:
         cfg_file (str): Path to config file
         rest_type (str): Type of dictionary to read, of multiple_dist, 
-        Boresch, or Cartesian
+        Boresch, or Cart
 
     Returns:
         rest_dict: Restraints dictionary, as supplied in the config file
@@ -63,7 +63,7 @@ def read_rest_dict(cfg_file, rest_type):
                 rest_dict = literal_eval("".join(dict_as_list))
                 break
         
-        if rest_type == "Cartesian":
+        if rest_type == "Cart":
             if l.startswith("cartesian restraints dictionary"):
                 dict_as_list = l.split("=")[1][1:-1] # remove leading space and \n
                 rest_dict = literal_eval("".join(dict_as_list))
@@ -622,7 +622,7 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
         lam_val (str): Window of interest
         percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
-        dof_type (str): Boresch, multiple_dist, Cartesian
+        dof_type (str): Boresch, multiple_dist, Cart
 
     Returns:
         dict: dict of dof_dicts, with run names as keys
@@ -645,7 +645,7 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
         if dof_type == "multiple_dist":
             rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
             dof_dict = track_multiple_dist_dof(rest_dict, u, percent_traj)
-        elif dof_type == "Cartesian":
+        elif dof_type == "Cart":
             rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
             anchor_ats = tuple([x for x in rest_dict["anchor_points"].values()])
             dof_dict = track_cartesian_dof(anchor_ats, u, percent_traj)
@@ -721,7 +721,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
         result in intial 75 % of trajectory being discarded)
         selected_dof_list (list): Subset of ["r","thetaA","thetaB","phiA","phiB",
         "phiC","thetaR","thetaL"]
-        dof_type (str): Boresch, multiple_dist, Cartesian
+        dof_type (str): Boresch, multiple_dist, Cart
     """
     print("###############################################################################################")
     print(f"Plotting values of Boresch DOF for {leg} {stage} lambda = {lam_val} and final {percent_traj} % of traj")

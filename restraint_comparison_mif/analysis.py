@@ -14,6 +14,18 @@ from .comparitive_analysis import av_waters
 
 def run_analysis_bound(leg = "bound", run_nos=[1,2,3,4,5], restraint_type="Boresch", timestep=4, nrg_freq=100,
 percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5}):
+    """Run analysis of bound leg. Note that some global variables must be changed in convergence_data.py (this will
+    be fixed in future). If the convergence data has already been generated, the analysis will start from there.
+
+    Args:
+        leg (str, optional): Does not currently allow 'free' as an option. Defaults to "bound".
+        run_nos (list, optional): _description_. Defaults to [1,2,3,4,5].
+        restraint_type (str, optional): List of run number to analyse. Defaults to "Boresch".
+        timestep (int, optional): Defaults to 4.
+        nrg_freq (int, optional): Steps between energy evaluations. Defaults to 100.
+        percent_traj_dict (dict, optional): Percentage of trajectory to use for analysis for each stage.
+        Defaults to {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5}.
+    """
 
     print("###############################################################################################")
     print(f"Analysing the {leg} leg for runs: {run_nos} and calculation type = {restraint_type}")
@@ -35,26 +47,21 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
     # This gives reasonable coverage of the pocket while excluding most waters outside.
     av_waters.plot_av_waters(leg, run_nos, stage="vanish", 
     percent_traj=percent_traj_dict["vanish"], index=1637,length=8, index2=34, length2=8)
+    # Plot DOF for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
+    plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
 
     if restraint_type == "Boresch":
-        # Plot Boresch DOF for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
-        plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
         selected_dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC"]
-        for wind in plot_winds:
-            restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
-                                          selected_dof_list, restraint_type)
-            restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
-                                         selected_dof_list, restraint_type)
-
+    elif restraint_type == "Cart":
+        selected_dof_list = ["xr_l1", "xr_l2W", "xr_l3", "phi", "theta", "psi"]
     elif restraint_type == "multiple_dist":
-        # Plot restrained distances for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
-        plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
         selected_dof_list = []
-        for wind in plot_winds:
-            restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
-                                          selected_dof_list, restraint_type)
-            restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
-                                         selected_dof_list, restraint_type)
+
+    for wind in plot_winds:
+        restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                        selected_dof_list, restraint_type)
+        restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
+                                        selected_dof_list, restraint_type)
 
     # RMSD for protein
     rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "protein")

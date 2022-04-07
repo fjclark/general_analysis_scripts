@@ -43,7 +43,7 @@ def get_restraint_cor(input_file, restraint_type):
 
     Args:
         input_file (str): Input file
-        restraint_type (str): Boresch or multiple_dist
+        restraint_type (str): Boresch, Cart, or multiple_dist
 
     Returns:
         energy: correction for releasing restraints
@@ -57,6 +57,9 @@ def get_restraint_cor(input_file, restraint_type):
     for i, line in enumerate(lines):
         if restraint_type == "Boresch":
             if "correction for releasing Boresch restraints =" in line:
+                energy=float(lines[i].split()[-3])
+        if restraint_type == "Cart":
+            if "correction for releasing Cartesian restraints =" in line:
                 energy=float(lines[i].split()[-3])
         elif restraint_type == "multiple_dist":
             if "Free energy change upon removing the restraint" in line:
@@ -76,7 +79,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
     Args:
         leg (str, optional): Free or bound. Defaults to "bound".
         run_nos (list, optional): List of int run numbers. Defaults to [1,2,3,4,5].
-        restraint_type (str): Boresch or multiple_dist
+        restraint_type (str): Boresch, Cart, or multiple_dist
 
     Returns:
         dict: Dictionary of form {"run001":{"vanish":dg, "restrain":dg, "lj_corr":dg,...} ,...}
@@ -108,7 +111,10 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
                     elif restraint_type == "multiple_dist":
                         dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/standard-state-s-1-b-4-d-0.25-o-6.dat",
                                                                 restraint_type="multiple_dist")
-                        results[run_name]["multiple_dist_corr"] = (dg_cor, conf_int_cor)
+                    elif restraint_type == "Cart":
+                        dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/cartesian_correction.dat",
+                                                                restraint_type="multiple_dist")
+                        results[run_name]["cartesian_corr"] = (dg_cor, conf_int_cor)
 
                     # Symmetry corrections assume 298 K (RT = 0.592187)
                     results[run_name]["symm_corr_binding_sites_298"] = (0.65, 0) # Three-fold symmetry of binding sites (so RTln3)
@@ -197,7 +203,7 @@ def write_results(leg="bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
     Args:
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): List of run numbers (ints). Defaults to [1,2,3,4,5].
-        restraint_type (str): Boresch or multiple_dist
+        restraint_type (str): Boresch, Cart, or multiple_dist
     """
     print("###############################################################################################")
     print("Writing results")
