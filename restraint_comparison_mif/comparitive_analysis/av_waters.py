@@ -83,7 +83,7 @@ def plot_av_waters(leg="bound", runs=[1,2,3,4,5], stage="vanish", percent_traj=6
                 f"Av. no waters within \n{length} $\AA$ of index {index}")
     else:
         plot_conv(ax, leg, stage, lam_vals, av_waters_all_runs, "$\lambda$",
-                f"Av. no waters within \n{length} $\AA$ of index {index}\n and {length2} of index {index2}")
+                f"Av. no waters within \n{length} $\AA$ of index {index}\n and {length2} $\AA$ of index {index2}")
 
     fig.tight_layout()
     mkdir_if_required("analysis")
