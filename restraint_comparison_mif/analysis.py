@@ -53,7 +53,7 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
     if restraint_type == "Boresch":
         selected_dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC"]
     elif restraint_type == "Cart":
-        selected_dof_list = ["xr_l1", "xr_l2W", "xr_l3", "phi", "theta", "psi"]
+        selected_dof_list = ["xr_l1", "yr_l1", "zr_l1", "phi", "theta", "psi"]
     elif restraint_type == "multiple_dist":
         selected_dof_list = []
 
