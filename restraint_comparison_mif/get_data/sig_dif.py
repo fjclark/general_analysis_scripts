@@ -9,7 +9,8 @@ import scipy.stats as st
 import numpy as np
 
 
-def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
+def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5],
+                         restraint_type_calc_1="Boresch", restraint_type_calc_2="Boresch"):
     """Returns dictionary containing the results for each contribution to the free energy for each
     replicate for the calculations given by each of the supplied paths.
 
@@ -18,7 +19,8 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
         calculation_2_path (str): Path to base directory of second set of calculations to be compared
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
-        restraint_type(str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
+        restraint_type_calc_1(str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
+        restraint_type_calc_2(str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
 
     Returns:
         dict: combined results
@@ -26,17 +28,25 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
     cwd = os.getcwd() # Get current working dir so we can return
     combined_results = {}
 
-    for path in [calculation_1_path, calculation_2_path]:
-        os.chdir(path)
+    for path_type in zip([calculation_1_path, calculation_2_path], [restraint_type_calc_1, restraint_type_calc_2]):
+        os.chdir(path_type[0])
         dir_name = os.path.split(os.getcwd())[1] # Use dir name to name the dictionary - "." uninformative, for example
-        results_dict = get_results(leg, run_nos, restraint_type=restraint_type)
+        results_dict = get_results(leg, run_nos, restraint_type=path_type[1])
         run_list = list(results_dict.keys())
-        overall_results_dict = {k:[] for k in results_dict[run_list[0]]}
+        overall_results_dict = {}
+        for contribution in results_dict[run_list[0]]:
+            if contribution[-4:] == "corr" and contribution != "lj_corr":
+                overall_results_dict["restraint_corr"] = [] # Name all corrections the same
+            else:
+                overall_results_dict[contribution] =[]
 
         for run in results_dict:
             results_subdict = results_dict[run]
             for contribution in results_subdict:
-                overall_results_dict[contribution].append(results_subdict[contribution][0]) # As dg first in tuple
+                if contribution[-4:] == "corr" and contribution != "lj_corr": # Make sure corrections have the same name so code below will work
+                    overall_results_dict["restraint_corr"].append(results_subdict[contribution][0]) # As dg first in tuple
+                else:
+                    overall_results_dict[contribution].append(results_subdict[contribution][0]) # As dg first in tuple
 
         combined_results[dir_name] = overall_results_dict
         os.chdir(cwd)
@@ -76,7 +86,7 @@ def independent_ttest(mean1, sd1, n1, mean2, sd2, n2):
     
 
 def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], offset_calc_2=0, 
-                   restraint_type="Boresch"):
+                   restraint_type_calc_1="Boresch", restraint_type_calc_2="Boresch"):
     """Carry out unpaired t-test assuming equal variances and write out p values. Note that the variance
     for dg_tot is calculated from the variances of the contributions, rather than from variation in dg_tot
     between runs, to avoid losing information.
@@ -88,10 +98,12 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
         offset_calc_2 (float): Add an offset to the total free energy for calculation 2 relative to
         calculation run. This is needed in the case of different symmetry corrections between runs.
-        restraint_type (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
+        restraint_type_calc_1 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
+        restraint_type_calc_2 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
     """
 
-    combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos, restraint_type)
+    combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos, 
+                                            restraint_type_calc_1, restraint_type_calc_2)
 
     dir1, dir2 = combined_results
     with open(f"{dir1}_{dir2}_sig_diff.txt", "wt") as f:
@@ -126,6 +138,7 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
 
             line = f"{contribution} = "
             line += f"{results_1.mean():.3f}, {results_2.mean():.3f} "
+
             line += f", t-test p = {p:.3f}"
             if p < 0.05:
                 line += ", SIGNIFICANT DIFFERENCE AT 95 % CONFIDENCE\n"
