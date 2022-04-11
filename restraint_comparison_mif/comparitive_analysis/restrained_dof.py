@@ -746,7 +746,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
             ax.plot([x for x in range(len(values))], values, label = f"{run_name}", color=colours[j])
             ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r" or dof[1] == "r":
-                ax.set_ylabel("r ($\AA$)")
+                ax.set_ylabel(f"{dof} ($\AA$)")
             elif type(dof) == tuple:
                 ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}")
             else:

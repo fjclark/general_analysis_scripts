@@ -111,6 +111,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
                     elif restraint_type == "multiple_dist":
                         dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/standard-state-s-1-b-4-d-0.25-o-6.dat",
                                                                 restraint_type="multiple_dist")
+                        results[run_name]["multiple_dist_corr"] = (dg_cor, conf_int_cor)
                     elif restraint_type == "Cart":
                         dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/cartesian_correction.dat",
                                                                 restraint_type="Cart")

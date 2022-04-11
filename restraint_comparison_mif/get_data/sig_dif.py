@@ -9,7 +9,7 @@ import scipy.stats as st
 import numpy as np
 
 
-def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5]):
+def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
     """Returns dictionary containing the results for each contribution to the free energy for each
     replicate for the calculations given by each of the supplied paths.
 
@@ -18,6 +18,7 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
         calculation_2_path (str): Path to base directory of second set of calculations to be compared
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
+        restraint_type(str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
 
     Returns:
         dict: combined results
@@ -28,7 +29,7 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
     for path in [calculation_1_path, calculation_2_path]:
         os.chdir(path)
         dir_name = os.path.split(os.getcwd())[1] # Use dir name to name the dictionary - "." uninformative, for example
-        results_dict = get_results(leg, run_nos)
+        results_dict = get_results(leg, run_nos, restraint_type=restraint_type)
         run_list = list(results_dict.keys())
         overall_results_dict = {k:[] for k in results_dict[run_list[0]]}
 
@@ -74,7 +75,8 @@ def independent_ttest(mean1, sd1, n1, mean2, sd2, n2):
     return p
     
 
-def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], offset_calc_2=0):
+def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_nos = [1,2,3,4,5], offset_calc_2=0, 
+                   restraint_type="Boresch"):
     """Carry out unpaired t-test assuming equal variances and write out p values. Note that the variance
     for dg_tot is calculated from the variances of the contributions, rather than from variation in dg_tot
     between runs, to avoid losing information.
@@ -86,9 +88,10 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
         offset_calc_2 (float): Add an offset to the total free energy for calculation 2 relative to
         calculation run. This is needed in the case of different symmetry corrections between runs.
+        restraint_type (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
     """
 
-    combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos)
+    combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos, restraint_type)
 
     dir1, dir2 = combined_results
     with open(f"{dir1}_{dir2}_sig_diff.txt", "wt") as f:
