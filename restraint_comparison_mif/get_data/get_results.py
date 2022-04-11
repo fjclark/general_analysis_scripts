@@ -113,7 +113,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
                                                                 restraint_type="multiple_dist")
                     elif restraint_type == "Cart":
                         dg_cor, conf_int_cor = get_restraint_cor(f"{output_dir}/cartesian_correction.dat",
-                                                                restraint_type="multiple_dist")
+                                                                restraint_type="Cart")
                         results[run_name]["cartesian_corr"] = (dg_cor, conf_int_cor)
 
                     # Symmetry corrections assume 298 K (RT = 0.592187)

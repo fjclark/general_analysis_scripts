@@ -20,7 +20,7 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
     Args:
         leg (str, optional): Does not currently allow 'free' as an option. Defaults to "bound".
         run_nos (list, optional): _description_. Defaults to [1,2,3,4,5].
-        restraint_type (str, optional): List of run number to analyse. Defaults to "Boresch".
+        restraint_type (str, optional): Boresch, multiple_dist, or Cart. Defaults to "Boresch".
         timestep (int, optional): Defaults to 4.
         nrg_freq (int, optional): Steps between energy evaluations. Defaults to 100.
         percent_traj_dict (dict, optional): Percentage of trajectory to use for analysis for each stage.

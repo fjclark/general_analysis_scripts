@@ -704,7 +704,7 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
     fig.tight_layout()
     mkdir_if_required("analysis")
     mkdir_if_required(f"analysis/{dof_type}_dof")
-    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val}_{dof_type}_dof_hists.png")
+    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val:.3f}_{dof_type}_dof_hists.png")
 
 
 def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, dof_type):
@@ -757,7 +757,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
     fig.tight_layout()
     mkdir_if_required("analysis")
     mkdir_if_required(f"analysis/{dof_type}_dof")
-    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val}_{dof_type}_dof_vals.png")
+    fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val:.3f}_{dof_type}_dof_vals.png")
 
 
 # Just seems to return whitespace (but no errors) if functions modified to return figures
