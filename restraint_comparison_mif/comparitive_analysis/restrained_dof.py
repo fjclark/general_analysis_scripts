@@ -375,91 +375,20 @@ class CoordSys:
         positions["Z"]["local_z"] = np.dot(ref_coord_sys.Z, self.Z)
         return positions
     
-    def get_offset(self, ref_coord_sys, u):
-        """Get the offset required to superimpose the current 
-        coordinate system on a reference coordinate
-        system, based on the average position over
-        the course of a trajectory.
-
-        Args:
-            ref_coord_sys (CoordSys): Reference coordinate system
-            u (mda.universe): Universe
-
-        Returns:
-            (dict): Average positions of reference system in frame of 
-            reference of self
-        """
-        positions = {"X":{"local_x":[],"local_y":[], "local_z":[]},
-                    "Y":{"local_x":[],"local_y":[], "local_z":[]}, 
-                    "Z":{"local_x":[],"local_y":[], "local_z":[]}}
-        
-        for frame in u.trajectory:
-            self.update(u)
-            ref_coord_sys.update(u)
-            current_positions = self.get_coord_sys_pos(ref_coord_sys)
-            for axis in positions:
-                for local_coord in positions[axis]:
-                    positions[axis][local_coord].append(current_positions[axis][local_coord])
-
-        for axis in positions:
-            for local_coord in positions[axis]:
-                positions[axis][local_coord] = np.array(positions[axis][local_coord]).mean()
-
-        return positions
-
-
-    def recalculate_offset(self):
-        """Recompute offset to ensure resultant axes are orthogonal and have norms of 1
-        Necessary because slight drift can occur during the offset calculation"""
-        offset_coords = self.offset_coords
-        #print(offset_coords)
-        X_temp = []
-        Y_temp = []
-        Z_temp = []
-        for local_coord in offset_coords["X"]:
-            X_temp.append(offset_coords["X"][local_coord])
-        for local_coord in offset_coords["Y"]:
-            Y_temp.append(offset_coords["Y"][local_coord])
-        for local_coord in offset_coords["Z"]:
-            Z_temp.append(offset_coords["Z"][local_coord])
-        X_temp, Y_temp, Z_temp = np.array(X_temp), np.array(Y_temp), np.array(Z_temp)
-        X_unnorm = X_temp
-        X = X_unnorm/norm(X_unnorm)
-        # Get y axis plane - not orthogonal to X
-        Y_plane = Y_temp
-        # Z axis is perpendicular to plane made by X and Y_plane
-        Z_unnorm = np.cross(X, Y_plane)
-        Z = Z_unnorm/norm(Z_unnorm)
-        # Compute Y to be orthogonal to X and Z
-        Y_unnorm = -np.cross(X, Z) # Negative because need to use left-hand rule. Should be normalised already.
-        Y = Y_unnorm/norm(Y_unnorm)
-
-        # Now write back to offset_coords
-        for i, local_coord in enumerate(offset_coords["X"]):
-            offset_coords["X"][local_coord] = X[i]
-        for i, local_coord in enumerate(offset_coords["Y"]):
-            offset_coords["Y"][local_coord] = Y[i]
-        for i, local_coord in enumerate(offset_coords["Z"]):
-            offset_coords["Z"][local_coord] =Z[i]
-        #print(offset_coords)
-        self.offset_coords = offset_coords
-        
-
-    def offset(self, ref_coord_sys, u):
+    def offset(self, ref_frame_rot):
         """Offset the coordinate system to superimpose on a reference
         coordinate system.
 
         Args:
-            ref_coord_sys (CoordSys): Reference coordinate system
+            ref_frame_rot (dict): Dictionary giving reference frame rotation in same form as in config file.
             u (mda.universe): Universe
         """
         if not self.already_offset:
-            self.offset_coords = self.get_offset(ref_coord_sys, u)
-            self.recalculate_offset()
-            temp_X = self.X*self.offset_coords["X"]["local_x"] + self.Y*self.offset_coords["X"]["local_y"] + self.Z*self.offset_coords["X"]["local_z"]
-            temp_Y = self.X*self.offset_coords["Y"]["local_x"] + self.Y*self.offset_coords["Y"]["local_y"] + self.Z*self.offset_coords["Y"]["local_z"]
-            temp_Z = self.X*self.offset_coords["Z"]["local_x"] + self.Y*self.offset_coords["Z"]["local_y"] + self.Z*self.offset_coords["Z"]["local_z"]
+            temp_X = self.X*ref_frame_rot["xl_ref"]["xl_ref_xl"] + self.Y*ref_frame_rot["xl_ref"]["xl_ref_yl"] + self.Z*ref_frame_rot["xl_ref"]["xl_ref_zl"]
+            temp_Y = self.X*ref_frame_rot["yl_ref"]["yl_ref_xl"] + self.Y*ref_frame_rot["yl_ref"]["yl_ref_yl"] + self.Z*ref_frame_rot["yl_ref"]["yl_ref_zl"]
+            temp_Z = self.X*ref_frame_rot["zl_ref"]["zl_ref_xl"] + self.Y*ref_frame_rot["zl_ref"]["zl_ref_yl"] + self.Z*ref_frame_rot["zl_ref"]["zl_ref_zl"]
             self.X, self.Y, self.Z = temp_X, temp_Y, temp_Z
+
             #print(self.X, self.Y, self.Z)
             #print(self.X, self.Y, self.Z)
             #try:
@@ -467,6 +396,8 @@ class CoordSys:
             #except Exception as e:
                 #print(e.with_traceback)
                 #print(offset_coords)
+            self.check_valid(self.X, self.Y, self.Z)
+            self.ref_frame_rot = ref_frame_rot
             self.already_offset = True
         else:
             raise Exception("Axis has already been offset") 
@@ -475,9 +406,9 @@ class CoordSys:
     def update(self, u):
         self.orig, self.X, self.Y, self.Z = get_coord_sys(self.idx1, self.idx2, self.idx3, u)
         if self.already_offset:
-            temp_X = self.X*self.offset_coords["X"]["local_x"] + self.Y*self.offset_coords["X"]["local_y"] + self.Z*self.offset_coords["X"]["local_z"]
-            temp_Y = self.X*self.offset_coords["Y"]["local_x"] + self.Y*self.offset_coords["Y"]["local_y"] + self.Z*self.offset_coords["Y"]["local_z"]
-            temp_Z = self.X*self.offset_coords["Z"]["local_x"] + self.Y*self.offset_coords["Z"]["local_y"] + self.Z*self.offset_coords["Z"]["local_z"]
+            temp_X = self.X*self.ref_frame_rot["xl_ref"]["xl_ref_xl"] + self.Y*self.ref_frame_rot["xl_ref"]["xl_ref_yl"] + self.Z*self.ref_frame_rot["xl_ref"]["xl_ref_zl"]
+            temp_Y = self.X*self.ref_frame_rot["yl_ref"]["yl_ref_xl"] + self.Y*self.ref_frame_rot["yl_ref"]["yl_ref_yl"] + self.Z*self.ref_frame_rot["yl_ref"]["yl_ref_zl"]
+            temp_Z = self.X*self.ref_frame_rot["zl_ref"]["zl_ref_xl"] + self.Y*self.ref_frame_rot["zl_ref"]["zl_ref_yl"] + self.Z*self.ref_frame_rot["zl_ref"]["zl_ref_zl"]
             self.X, self.Y, self.Z = temp_X, temp_Y, temp_Z
         self.check_valid(self.X, self.Y, self.Z)
 
@@ -516,12 +447,12 @@ class CoordSys:
         
 
 def get_cart_dof(lig_sys, recept_sys, u):
-    xr_l1, xr_l2, xr_l3 = recept_sys.get_point_pos(lig_sys.orig)
+    xr_l1, yr_l1, zr_l1 = recept_sys.get_point_pos(lig_sys.orig)
     phi, theta, psi = recept_sys.get_euler_angles(lig_sys, u)
-    return xr_l1, xr_l2, xr_l3, phi, theta, psi
+    return xr_l1, yr_l1, zr_l1, phi, theta, psi
 
 
-def track_cartesian_dof(anchor_ats, u, percent_traj):
+def track_cartesian_dof(anchor_ats, ref_frame_rot, u, percent_traj):
     """Get values, mean, and standard deviation of Cartesian
     degrees of freedom and internal angles defined by supplied
     anchor atoms. Also calculate total variance accross all DOF
@@ -529,6 +460,7 @@ def track_cartesian_dof(anchor_ats, u, percent_traj):
 
     Args:
         anchor_ats (tuple): Anchor atom indices, of form (r1,r2,r3,l1,l2,l3)
+        ref_frame_rot (dict): Reference frame rotation dictionary, in same form as in config file
         u (mda universe): The system
         percent_traj (float): Percentage of run to average over (25 % would
         result in intial 75 % of trajectory being discarded)
@@ -538,7 +470,7 @@ def track_cartesian_dof(anchor_ats, u, percent_traj):
          "values":[...]}, dof2:{...},...}
     """
     
-    r1,r2,r3,l1,l2,l3 = anchor_ats
+    l1, l2, l3, r1, r2, r3 = anchor_ats
     n_frames = len(u.trajectory)
     first_frame = round(n_frames - ((percent_traj/100)*n_frames)) # Index of first frame to be used for analysis
     
@@ -552,28 +484,10 @@ def track_cartesian_dof(anchor_ats, u, percent_traj):
     # Get Coordinate systems and set offset for ligand coordinate system
     recept_sys = CoordSys(r1, r2, r3, u)
     lig_sys = CoordSys(l1, l2, l3, u)
-    lig_sys.offset(recept_sys, u)
-    dof_dict["offset"] = lig_sys.offset_coords
-
+    lig_sys.offset(ref_frame_rot)
 
     # Populate these dictionaries with values from trajectory
     n_frames = len(u.trajectory)
-
-    for i, frame in enumerate(u.trajectory):
-        lig_sys.update(u)
-        recept_sys.update(u)
-        xr_l1, yr_l1, zr_l1, phi, theta, psi = get_cart_dof(lig_sys, recept_sys, u)
-        thetaL = get_angle(r1, r2, r3, u)
-        thetaR = get_angle(l1, l2, l3, u)
-        dof_dict["xr_l1"]["values"].append(xr_l1)
-        dof_dict["yr_l1"]["values"].append(yr_l1)
-        dof_dict["zr_l1"]["values"].append(zr_l1)
-        dof_dict["phi"]["values"].append(phi)
-        dof_dict["theta"]["values"].append(theta)
-        dof_dict["psi"]["values"].append(psi)
-        dof_dict["thetaL"]["values"].append(thetaL)
-        dof_dict["thetaR"]["values"].append(thetaR)
-
 
     for i, frame in enumerate(u.trajectory):
         if i >= first_frame:
@@ -648,7 +562,8 @@ def get_dof_dicts(leg, runs, stage, lam_val, percent_traj, dof_type):
         elif dof_type == "Cart":
             rest_dict = read_rest_dict(cfg_path, rest_type=dof_type)
             anchor_ats = tuple([x for x in rest_dict["anchor_points"].values()])
-            dof_dict = track_cartesian_dof(anchor_ats, u, percent_traj)
+            ref_frame_rot = rest_dict["reference_frame_rotation"]
+            dof_dict = track_cartesian_dof(anchor_ats, ref_frame_rot, u, percent_traj)
         dof_dicts[run_name]=dof_dict
 
     return dof_dicts
