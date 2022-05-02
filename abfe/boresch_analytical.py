@@ -3,15 +3,15 @@ from math import pi, sin, log
 
 # Constants
 v0 = 1660.53907 # A^3, the standard state volume
-kT = 0.59617 # kcal mol-1 at 300 K
+kT = 0.593 # kcal mol-1 at 300 K
 
 # Params
-r = 3.48 #A
-thetaA = 89.73 #deg
-thetaB = 124.14 #deg
+r = 5.92 #A
+thetaA = 91.1 #deg
+thetaB = 106 #deg
 
-kr = 20 # kcal mol-1 A-2
-kang = 20 # kcal mol-1 rad-2
+kr = 10 # kcal mol-1 A-2
+kang = 10 # kcal mol-1 rad-2
 
 # Calculation
 numerator = 8*(pi**2)*v0*np.sqrt(kr*kang**5)

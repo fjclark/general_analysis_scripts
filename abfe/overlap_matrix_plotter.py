@@ -14,12 +14,13 @@ line_idx_overlap_matrix = 0
 line_idx_dg = 0
 
 for i,l in enumerate(lines):
-    if l.startswith('#Overlap matrix'):
+    if l.startswith('#PMF from TI in kcal/mol'):
         line_idx_overlap_matrix = i
-    if l.startswith('#DG from neighbouring lambda in kcal/mol'):
+    if l.startswith('#MBAR free energy difference in kcal/mol:'):
         line_idx_dg = i
 
 no_lam_vals = line_idx_dg - line_idx_overlap_matrix -1
+print(f"{no_lam_vals=}")
 
 #extract data
 matrix = []

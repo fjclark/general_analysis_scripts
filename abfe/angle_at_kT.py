@@ -8,7 +8,7 @@ from numpy import sqrt
 
 # Constants
 kT = 0.593 # kcal mol-1 at 298 K
-k = int(sys.argv[1]) # kcal mol-1 rad-2
+k = float(sys.argv[1]) # kcal mol-1 rad-2
 k_deg = k*(pi/180)**2 # convert force constant to kcal mol-1 deg-2
 
 def angle_at_kT(force_const):
