@@ -18,7 +18,11 @@ NRGFREQ = 100  # How many steps between energy evaluations
 LEG = "bound"
 RUN_NOS = [1, 2, 3, 4, 5]
 SIMTIME = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
-    "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3}}
+    "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3},
+    "release": {"wind_len": 2, "discard": 1}, "unrigidify_lig": {
+    "wind_len": 6, "discard": 1},"unrigidify_prot": {
+    "wind_len": 6, "discard": 1}, "rigidify": {
+    "wind_len": 6, "discard": 1}, "release_2": {"wind_len": 2, "discard": 1}}
 
 
 def truncate_simfile(in_file, out_file, start_time, end_time):

@@ -104,7 +104,10 @@ def plot_overall_conv(pickled_data, leg):
         for run in runs:
             fr_nrg_run = []
             for cumtime in cumtimes:
-                fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
+                if stage in ["release", "unrigidify_lig", "unrigidify_prot"]: # Reverse sign of contribution
+                    fr_nrg_run.append(-conv_dict[run][stage][cumtime]["dg_tot"])
+                else:
+                    fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
             fr_nrgs.append(fr_nrg_run)
         tot_fr_nrgs.append(fr_nrgs)
         
