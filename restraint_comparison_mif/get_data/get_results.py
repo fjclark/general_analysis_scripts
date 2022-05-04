@@ -93,7 +93,12 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
         for stage in paths[run_name].keys():
             mbar_file = paths[run_name][stage]["mbar_data"]
             lam_vals = paths[run_name][stage]["lam_vals"]
-            dg, conf_int, _, _ = read_mbar_data(mbar_file,lam_vals) # throw away PMF and overlap
+            try:
+                dg, conf_int, _, _ = read_mbar_data(mbar_file,lam_vals) # throw away PMF and overlap
+            except Exception as e:
+                print(f"Error: failure to write results for {run_name}, {stage}")
+                raise e
+            
             if stage in ["release", "unrigidify_lig", "unrigidify_prot"]: # Reverse sign of contribution
                 dg *= -1
             results[run_name][stage] = (dg, conf_int)
