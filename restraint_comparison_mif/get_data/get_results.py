@@ -98,11 +98,6 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
                 dg *= -1
             results[run_name][stage] = (dg, conf_int)
 
-            mbar_file = paths[run_name][stage]["mbar_data"]
-            lam_vals = paths[run_name][stage]["lam_vals"]
-            dg, conf_int, _, _ = read_mbar_data(mbar_file,lam_vals) # throw away PMF and overlap
-            results[run_name][stage] = (dg, conf_int)
-
             if stage == "vanish":
                 output_dir = paths[run_name][stage]["output"]
                 dg, conf_int = get_lj_corr(f"{output_dir}/freenrg-LJCOR.dat")
