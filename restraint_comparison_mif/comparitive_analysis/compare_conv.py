@@ -77,12 +77,13 @@ def plot_stages_conv(pickled_data, leg):
     fig.savefig(f"analysis/overall_convergence/{leg}_stages_joint_convergence.png")
 
 
-def plot_overall_conv(pickled_data, leg):
+def plot_overall_conv(pickled_data, leg, exclude=[]):
     """Plot overall convergence accross all runs for given leg.
 
     Args:
         pickled_data (str): Path to pickled convergence dictionary data
         leg (str): Bound or free
+        exclude (list): List of stages to exclude from the overall convergence plot.
     """
     print("###############################################################################################")
     print("Plotting overall convergence")
@@ -98,18 +99,21 @@ def plot_overall_conv(pickled_data, leg):
     tot_fr_nrgs = []
 
     for stage in stages:
-        cumtimes = list(conv_dict[runs[0]][stage].keys())
-        tot_cumtimes.append(cumtimes)
-        fr_nrgs = []
-        for run in runs:
-            fr_nrg_run = []
-            for cumtime in cumtimes:
-                if stage in ["release", "unrigidify_lig", "unrigidify_prot"]: # Reverse sign of contribution
-                    fr_nrg_run.append(-conv_dict[run][stage][cumtime]["dg_tot"])
-                else:
-                    fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
-            fr_nrgs.append(fr_nrg_run)
-        tot_fr_nrgs.append(fr_nrgs)
+        if stage in exclude:
+            pass
+        else:
+            cumtimes = list(conv_dict[runs[0]][stage].keys())
+            tot_cumtimes.append(cumtimes)
+            fr_nrgs = []
+            for run in runs:
+                fr_nrg_run = []
+                for cumtime in cumtimes:
+                    if stage in ["release", "unrigidify_lig", "unrigidify_prot"]: # Reverse sign of contribution
+                        fr_nrg_run.append(-conv_dict[run][stage][cumtime]["dg_tot"])
+                    else:
+                        fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
+                fr_nrgs.append(fr_nrg_run)
+            tot_fr_nrgs.append(fr_nrgs)
         
     tot_cumtimes = np.sum(np.array(tot_cumtimes), axis=0)
     tot_fr_nrgs = np.sum(np.array(tot_fr_nrgs), axis=0)
@@ -117,7 +121,12 @@ def plot_overall_conv(pickled_data, leg):
     plot_conv(ax, leg, "overall", tot_cumtimes, tot_fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
     fig.tight_layout()
     mkdir_if_required("analysis/overall_convergence")
-    fig.savefig(f"analysis/overall_convergence/{leg}_overall_convergence.png")
+    if not exclude:
+        fig_name = f"analysis/overall_convergence/{leg}_overall_convergence.png"
+    else:
+        excluded = "_".join(exclude)
+        fig_name = f"analysis/overall_convergence/{leg}_overall_convergence_exclude_{excluded}.png"
+    fig.savefig(fig_name)
 
 
 if __name__ == "__main__":
