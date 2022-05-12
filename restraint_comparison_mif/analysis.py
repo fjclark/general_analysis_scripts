@@ -13,7 +13,8 @@ from .comparitive_analysis import rmsd
 from .comparitive_analysis import av_waters
 
 def run_analysis_bound(leg = "bound", run_nos=[1,2,3,4,5], restraint_type="Boresch", timestep=4, nrg_freq=100,
-percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5}):
+percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5, "rigidify":83.33333333,
+                     "unrigidify_lig":83.33333333, "unrigidify_prot":83.33333333}):
     """Run analysis of bound leg. Note that some global variables must be changed in convergence_data.py (this will
     be fixed in future). If the convergence data has already been generated, the analysis will start from there.
 
