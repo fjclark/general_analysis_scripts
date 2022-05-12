@@ -17,7 +17,7 @@ def check_success(run_nos = [1,2,3,4,5], leg="bound", verbose=True):
     for run in dir_paths:
         for leg in dir_paths[run]:
             output_dir = dir_paths[run][leg]["output"]
-            slurm_logs = glob.glob(f"{output_dir}/somd-array-gpu*")
+            slurm_logs = glob.glob(f"{output_dir}/somd-array-gpu*", recursive=False)
             for log in slurm_logs:
                 lam = "Undefined"
                 with open(log, "rt") as f:
@@ -25,6 +25,10 @@ def check_success(run_nos = [1,2,3,4,5], leg="bound", verbose=True):
                     lines = f.readlines()
                     no_lines = len(lines)
                     for l in lines:
+                        if l.startswith("lambda is"):
+                            lam = l.split()[-1]
+                            break
+                    for l in lines[no_lines - 10:]: # To deal with massive debug == True outputs
                         if l.startswith("lambda is"):
                             lam = l.split()[-1]
                         if "NaN or Inf has been generated along the simulation" in l:
