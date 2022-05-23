@@ -97,9 +97,9 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
         leg (str, optional): Bound or free. Defaults to "bound".
         run_nos (list, optional): Replicate runs to be included. Defaults to [1,2,3,4,5].
         offset_calc_2 (float): Add an offset to the total free energy for calculation 2 relative to
-        calculation run. This is needed in the case of different symmetry corrections between runs.
-        restraint_type_calc_1 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
-        restraint_type_calc_2 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Cart.
+        calculation 1. This is needed in the case of different symmetry corrections between runs.
+        restraint_type_calc_1 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
+        restraint_type_calc_2 (str, optional): Boresch, multiple_dist, or Cart. Defaults to Boresch.
     """
 
     combined_results = get_combined_results(calculation_1_path, calculation_2_path, leg, run_nos, 
