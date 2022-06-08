@@ -11,21 +11,8 @@ import os, pickle
 from multiprocessing import Pool, cpu_count
 from ..save_data import mkdir_if_required
 
-# Constants TODO: Add arg parser
-CHUNKSIZE = 0.05  # ns - how far to separate each calculation of energies
-TIMESTEP = 0.000004  # ns
-NRGFREQ = 100  # How many steps between energy evaluations
-LEG = "bound"
-RUN_NOS = [1, 2, 3, 4, 5]
-SIMTIME = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
-    "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3},
-    "release": {"wind_len": 2, "discard": 1}, "unrigidify_lig": {
-    "wind_len": 6, "discard": 1},"unrigidify_prot": {
-    "wind_len": 6, "discard": 1}, "rigidify": {
-    "wind_len": 6, "discard": 1}, "release_2": {"wind_len": 2, "discard": 1}}
 
-
-def truncate_simfile(in_file, out_file, start_time, end_time):
+def truncate_simfile(in_file, out_file, start_time, end_time, nrg_freq, timestep):
     """Truncate a simfile between given start and end time.
 
     Args:
@@ -33,6 +20,8 @@ def truncate_simfile(in_file, out_file, start_time, end_time):
         out_file (str): Path to input file 
         start_time (int): Start time in ns
         end_time (int): End time in ns
+        nrg_freq (int): Number of steps between energy evaluations
+        timestep (int): Timestep in ns
     """
     with open(in_file, "r") as istream:
         with open(out_file, "w") as ostream:
@@ -41,7 +30,7 @@ def truncate_simfile(in_file, out_file, start_time, end_time):
                     ostream.write(line)
                     continue
                 elems = line.split()
-                time = (float(elems[0])+NRGFREQ)*TIMESTEP
+                time = (float(elems[0])+nrg_freq)*timestep
                 if (time < start_time):
                     continue
                 if (time > end_time):
@@ -49,7 +38,7 @@ def truncate_simfile(in_file, out_file, start_time, end_time):
                 ostream.write(line)
 
 
-def do_mbar(lam_vals, input_dir, output_dir, start_time, end_time):
+def do_mbar(lam_vals, input_dir, output_dir, start_time, end_time, nrg_freq, timestep):
     """Perform MBAR analysis for supplied lambda values for data between
     given start and end times. 
 
@@ -59,6 +48,8 @@ def do_mbar(lam_vals, input_dir, output_dir, start_time, end_time):
         output_dir (str): Directory where output will be saved
         start_time (float): Start time in ns
         end_time (float): End time in ns
+        nrg_freq (int): Number of steps between energy evaluations
+        timestep (int): Timestep in ns
 
     Returns:
         (float): cumulative sampling time 
@@ -69,7 +60,9 @@ def do_mbar(lam_vals, input_dir, output_dir, start_time, end_time):
     for lam_val in lam_vals:
         os.system(f"mkdir {output_dir}/lambda-{lam_val}")
         truncate_simfile(f"{input_dir}/lambda-{lam_val}/simfile.dat",
-                         f"{output_dir}/lambda-{lam_val}/simfile.dat", start_time, end_time)
+                         f"{output_dir}/lambda-{lam_val}/simfile.dat",
+                          start_time, end_time,
+                          nrg_freq, timestep)
         cumtime += delta_t
 
     cmd = f"/home/finlayclark/anaconda3/envs/biosimspace-dev/bin/analyse_freenrg mbar \
@@ -118,11 +111,29 @@ def read_mbar_data(mbar_file, lam_vals):
 
     return dg_tot, dg_conf_int, pmf, overlap
 
+SIMTIME = {"discharge": {"wind_len": 6, "discard": 1}, "vanish": {"wind_len": 6, "discard": 1}} # ns
 
-def get_convergence_dict():
+def get_convergence_dict(leg="bound", run_nos=[1, 2, 3, 4, 5],
+                        chunksize=0.05, nrg_freq=100, timestep=0.000004,
+                        simtime = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
+                            "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3},
+                            "release": {"wind_len": 2, "discard": 1}, "unrigidify_lig": {
+                            "wind_len": 6, "discard": 1},"unrigidify_prot": {
+                            "wind_len": 6, "discard": 1}, "rigidify": {
+                            "wind_len": 6, "discard": 1}, "release_2": {"wind_len": 2, "discard": 1}}
+                         ):
     """Create dictionary of the form {run:{stage:{cumtime1: {dg_tot:DG_tot, 
     pmf:{lamval1: DG1, lamval2:DG2, ...}}, cumtime2:{...}, ...}}} to store all
     convergence data.
+
+    Args:
+        leg (string) : bound or free
+        run_nos (list): Numbers of runs to include in analysis
+        chunksize (float): ns between each calculation of energies
+        nrg_freq (int): Number of steps between energy evaluations
+        timestep (int): Timestep in ns
+        simtime (dict): Lengths of simulations and lengths of inital
+                        periods to discard as equilibration, in ns. 
 
     Returns:
         dict: convergence data
@@ -130,16 +141,16 @@ def get_convergence_dict():
     print("###############################################################################################")
     print("Calculating convergence data and obtaining convergence dictionary")
 
-    paths = dir_paths.get_dir_paths(RUN_NOS, LEG)
+    paths = dir_paths.get_dir_paths(run_nos, leg)
     conv_dict = {}
     
     for run in paths.keys():
         conv_dict[run]={}
         for stage in paths[run].keys():
             conv_dict[run][stage]={}
-            start_time = SIMTIME[stage]["discard"]
-            final_end_time = SIMTIME[stage]["wind_len"]
-            end_times = [(x*CHUNKSIZE)+start_time for x in range(1, int((final_end_time-start_time)/CHUNKSIZE)+1)]
+            start_time = simtime[stage]["discard"]
+            final_end_time = simtime[stage]["wind_len"]
+            end_times = [(x*chunksize)+start_time for x in range(1, int((final_end_time-start_time)/chunksize)+1)]
             win_times = [x-start_time for x in end_times] # Cumulative time for single lam window
             lam_vals = paths[run][stage]["lam_vals"]
             input_dir = paths[run][stage]["output"] # output of simulations is input to do_mbar()
@@ -153,7 +164,8 @@ def get_convergence_dict():
             do_mbar_args = []
             for i, win_time in enumerate(win_times): # There will be a corrersponding cumulative time, returned by do_mbar
                 os.system(f"mkdir tmp/{win_time}")
-                do_mbar_args.append((lam_vals, input_dir, f"./tmp/{win_time}", start_time, end_times[i]))
+                do_mbar_args.append((lam_vals, input_dir, f"./tmp/{win_time}",
+                                      start_time, end_times[i]), nrg_freq, timestep)
 
             # Carry out mbar analyses in parallel
             with Pool() as pool:
