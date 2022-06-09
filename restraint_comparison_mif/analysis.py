@@ -34,7 +34,7 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
         leg (str, optional): Does not currently allow 'free' as an option. Defaults to "bound".
         run_nos (list, optional): _description_. Defaults to [1,2,3,4,5].
         restraint_type (str, optional): Boresch, multiple_dist, or Cart. Defaults to "Boresch".
-        timestep (int, optional): Defaults to 4.
+        timestep (int, optional): In fs. Defaults to 4.
         nrg_freq (int, optional): Steps between energy evaluations. Defaults to 100.
         percent_traj_dict (dict, optional): Percentage of trajectory to use for analysis for each stage.
         Defaults to {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5}.
@@ -48,7 +48,9 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
 
     # Only calculate convergence data if this has not been done already
     if not os.path.isfile("analysis/convergence_data.pickle"):
-        convergence_data.get_convergence_dict(leg, run_nos, nrg_freq, timestep, simtime)
+        convergence_data.get_convergence_dict(leg=leg, run_nos=run_nos, nrg_freq=nrg_freq,
+                                              timestep=timestep/1000000, # Convert to ns
+                                               simtime=simtime)
 
     if leg == "bound":
         get_results.write_results(leg, run_nos, restraint_type)

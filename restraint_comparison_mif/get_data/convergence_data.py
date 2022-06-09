@@ -111,8 +111,6 @@ def read_mbar_data(mbar_file, lam_vals):
 
     return dg_tot, dg_conf_int, pmf, overlap
 
-SIMTIME = {"discharge": {"wind_len": 6, "discard": 1}, "vanish": {"wind_len": 6, "discard": 1}} # ns
-
 def get_convergence_dict(leg="bound", run_nos=[1, 2, 3, 4, 5],
                         chunksize=0.05, nrg_freq=100, timestep=0.000004,
                         simtime = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
@@ -162,17 +160,17 @@ def get_convergence_dict(leg="bound", run_nos=[1, 2, 3, 4, 5],
             os.system("mkdir tmp")
             # create a list of tuples of the arguments to supply to starmap
             do_mbar_args = []
-            for i, win_time in enumerate(win_times): # There will be a corrersponding cumulative time, returned by do_mbar
+            for i, win_time in enumerate(win_times): # There will be a corresponding cumulative time, returned by do_mbar
                 os.system(f"mkdir tmp/{win_time}")
                 do_mbar_args.append((lam_vals, input_dir, f"./tmp/{win_time}",
-                                      start_time, end_times[i]), nrg_freq, timestep)
+                                      start_time, end_times[i], nrg_freq, timestep))
 
             # Carry out mbar analyses in parallel
             with Pool() as pool:
                 cumtimes = pool.starmap(do_mbar, do_mbar_args)
 
             #extract data and delete dirs
-            for i, win_time in enumerate(win_times): # There will be a corrersponding cumulative time, returned by do_mbar
+            for i, win_time in enumerate(win_times): # There will be a corresponding cumulative time, returned by do_mbar
                 cumtime = cumtimes[i]
                 conv_dict[run][stage][cumtime] = {}
                 dg_tot, _, pmf, _ = read_mbar_data(f"./tmp/{win_time}/mbar.dat",lam_vals) # throw away sd and overlap

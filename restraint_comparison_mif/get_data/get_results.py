@@ -126,7 +126,7 @@ def get_results(leg = "bound", run_nos = [1,2,3,4,5], restraint_type="Boresch"):
 
                     # Symmetry corrections assume 298 K (RT = 0.592187)
                     results[run_name]["symm_corr_binding_sites_298"] = (0.65, 0) # Three-fold symmetry of binding sites (so RTln3)
-                    results[run_name]["symm_corr_phenol_298"] = (0.41, 0) # Rotation of phenol hindered in binding site (so RTln2)
+                    #results[run_name]["symm_corr_phenol_298"] = (0.41, 0) # Rotation of phenol hindered in binding site (so RTln2)
             
         
         dg_tot = sum([val[0] for key, val in results[run_name].items() if key != "boresch_ana_corr"]) # Energy is first value in tuple.
