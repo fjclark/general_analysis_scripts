@@ -1,6 +1,8 @@
 # Plot the gradient dH/dlam with time for all windows
 
 import matplotlib.pyplot as plt
+from numpy.core.numeric import NaN
+import numpy as np
 from ..get_data.dir_paths import get_dir_paths
 from ..save_data import mkdir_if_required
 
@@ -45,7 +47,42 @@ def read_simfile(simfile_path, percent_traj, timestep=4, nrg_freq =100):
     return times, grads
 
 
-def plot_grad(run_name, simfile_path, ax, percent_traj, timestep =4, nrg_freq = 100):
+def rolling_av(times, vals, dt):
+    """Retrun rolling average of time series values
+    
+    Args:
+        times (float): times
+        vals (float): values
+        dt (float): Time interval over which to average
+    
+    Returns:
+        list: Rolling average values, of same dimension as input
+    """
+    
+    vals = np.array(vals)
+    
+    # Get number of values in time interval
+    dv = 0
+    for i, t in enumerate(times):
+        if t >= dt:
+            dv = i
+            break
+    
+    print(dv)
+    
+    # Calculate rolling average
+    rolling_av_vals = []
+    for i, val in enumerate(vals):
+        # Set first few time values to NaN (where there is insufficient data for a rolling average)
+        if i < dv-1:
+            rolling_av_vals.append(NaN)
+        else:
+            rolling_av_vals.append(vals[i-(dv-1):i+1].mean())
+    
+    return rolling_av_vals
+
+
+def plot_grad(run_name, simfile_path, ax, percent_traj, timestep =4, nrg_freq = 100, dt=0):
     """Plot gradients with time on supplied axis for given run, leg, stage,
     and lambda value.
 
@@ -56,15 +93,19 @@ def plot_grad(run_name, simfile_path, ax, percent_traj, timestep =4, nrg_freq = 
         timestep (int, optional): Timestep in fs. Defaults to 4 fs.
         nrg_freq (int, optional): Frequency of energy saving. Required because this changes 
         form of the simfile. Defaults to 100.
+        dt (float): Time interval over which to compute rolling average. Defaults to zero.
     """
+    # Get rolling average of values if required
     times, grads = read_simfile(simfile_path, percent_traj, timestep, nrg_freq)
+    if dt:
+        grads = rolling_av(times, grads, dt)
     
     ax.plot(times, grads, label=f"Run {run_name}", alpha=0.3)
     ax.set_xlabel("Time (ns)")
     ax.set_ylabel("d$H$/d$\lambda$ / kcal.mol$^-$$^1$")
 
 
-def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100):
+def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100, dt=0):
     """Plot gradients against time for all supplied runs, for 
     all lambda windows in all stages of given leg.
 
@@ -77,6 +118,7 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100):
         timestep (int, optional): Timestep in fs. Defaults to 4 fs.
         nrg_freq (int, optional): Frequency of energy saving. Required because this changes 
         form of the simfile. Defaults to 100.
+        dt (float): Time interval over which to compute rolling average. Defaults to zero.
     """
     paths = get_dir_paths(runs, leg)
     run_names = list(paths.keys())
@@ -109,7 +151,7 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100):
                 print(f"Plotting grads for {leg}, {stage}, lambda: {lam_val}, {run_name}")
                 lam_path = paths[run_name][stage]["lam_paths"][j]
                 simfile_path = f"{lam_path}/simfile.dat"
-                plot_grad(run_name, simfile_path, ax, percent_traj, timestep, nrg_freq)
+                plot_grad(run_name, simfile_path, ax, percent_traj, timestep, nrg_freq, dt)
             ax.legend(loc="best")
             # Keep only the bottom time 
             if j!= len(lam_vals) - 1:
@@ -117,4 +159,4 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100):
                 x_axis.set_visible(False)
         
     mkdir_if_required("analysis/overall_convergence")
-    fig.savefig(f'analysis/overall_convergence/{leg}_grads.png',bbox_inches="tight")
+    fig.savefig(f'analysis/overall_convergence/{leg}_grads_dt_{dt}.png',bbox_inches="tight")
