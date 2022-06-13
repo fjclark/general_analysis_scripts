@@ -665,7 +665,7 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
             if dof == "r" or dof[1] == "r":
                 ax.set_ylabel(f"{dof} ($\AA$)")
             elif type(dof) == tuple:
-                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}")
+                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]} / $\AA$")
             else:
                 ax.set_ylabel(f"{dof} (rad)")
             ax.set_xlabel("Frame No")
