@@ -51,6 +51,15 @@ def get_combined_results(calculation_1_path, calculation_2_path, leg = "bound", 
         combined_results[dir_name] = overall_results_dict
         os.chdir(cwd)
 
+    # Ensure all contributions are present in both sub-dictionaries
+    dict1_id, dict2_id = combined_results.keys()
+    for contribution in combined_results[dict1_id]:
+        if contribution not in combined_results[dict2_id]:
+            combined_results[dict2_id][contribution]=[]
+    for contribution in combined_results[dict2_id]:
+        if contribution not in combined_results[dict1_id]:
+            combined_results[dict1_id][contribution]=[]
+
     return combined_results
 
 
@@ -135,6 +144,7 @@ def write_sig_diff(calculation_1_path, calculation_2_path, leg = "bound", run_no
                 sd_tot_1 = np.sqrt(sum(stds_1**2))
                 sd_tot_2 = np.sqrt(sum(stds_2**2))
                 p = independent_ttest(results_1.mean(), sd_tot_1, n, results_2.mean(), sd_tot_2, n)
+                print(f"{sd_tot_1=}, {sd_tot_2=}")
 
             line = f"{contribution} = "
             line += f"{results_1.mean():.3f}, {results_2.mean():.3f} "
