@@ -3,6 +3,7 @@ import os
 
 from .get_data import convergence_data
 from .get_data import get_results
+from .get_data import check_success
 from .comparitive_analysis import compare_conv
 from .comparitive_analysis import compare_pmfs
 from .comparitive_analysis import overlap
@@ -48,6 +49,9 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
 
     # Only calculate convergence data if this has not been done already
     if not os.path.isfile("analysis/convergence_data.pickle"):
+        # Check if all simulations ran successfully
+        if not check_success.check_success(run_nos=run_nos, leg=leg, verbose=True):
+            raise Exception("Error: Not all windows completed successfully")
         convergence_data.get_convergence_dict(leg=leg, run_nos=run_nos, nrg_freq=nrg_freq,
                                               timestep=timestep/1000000, # Convert to ns
                                                simtime=simtime)
@@ -59,7 +63,7 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
         compare_pmfs.plot_all_pmfs(run_nos, leg)
         overlap.plot_overlap_mats(leg, run_nos)
         indiv_pmf_conv.plot_pmfs_conv(leg, run_nos)
-        dh_dlam.plot_grads(leg, run_nos, percent_traj_dict, timestep, nrg_freq)
+        dh_dlam.plot_grads(leg, run_nos, percent_traj_dict, timestep, nrg_freq, dt=0.1)
 
         # Plot average waters within 8 A of CG2 in VAL and N in PRT on opposite sides of binding pocket.
         # This gives reasonable coverage of the pocket while excluding most waters outside.
@@ -95,7 +99,7 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
         compare_pmfs.plot_all_pmfs(run_nos, leg)
         overlap.plot_overlap_mats(leg, run_nos)
         indiv_pmf_conv.plot_pmfs_conv(leg, run_nos)
-        dh_dlam.plot_grads(leg, run_nos, percent_traj_dict, timestep, nrg_freq)
+        dh_dlam.plot_grads(leg, run_nos, percent_traj_dict, timestep, nrg_freq, dt=0.1)
 
         # RMSD for syn-anti interconversion of ligand (ignore phenol group which is rotatable and adds noise)
         rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "resname LIG and (not name H* OAA CAS CAD CAF CAG CAP CAE)")

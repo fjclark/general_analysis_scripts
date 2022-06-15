@@ -11,6 +11,8 @@ def check_success(run_nos = [1,2,3,4,5], leg="bound", verbose=True):
         run_nos (list, optional): Run numbers to check. Defaults to [1,2,3,4,5].
         leg (str, optional): bound or free. Defaults to bound.
     """
+    print("###############################################################################################")
+    print("Checking for successful completion of simulations")
     failed_windows = []
     no_instability_failures = 0
     dir_paths = get_dir_paths(run_nos, leg)
@@ -45,6 +47,7 @@ def check_success(run_nos = [1,2,3,4,5], leg="bound", verbose=True):
 
     if failed_windows == []:
         print("All windows ran successfully")
+        return True
     else:
         print("The following windows failed:")
         if verbose:
@@ -55,4 +58,6 @@ def check_success(run_nos = [1,2,3,4,5], leg="bound", verbose=True):
                 print(f"{fail[0]}")
         print(f"No failed windows = {len(failed_windows)}")
         print(f"Failures due to instabilities = {no_instability_failures}")
+
+        return False
 
