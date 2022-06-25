@@ -12,7 +12,8 @@ from multiprocessing import Pool, cpu_count
 from ..save_data import mkdir_if_required
 
 
-def truncate_simfile(in_file, out_file, start_time, end_time, nrg_freq, timestep):
+def truncate_simfile(in_file, out_file, start_time, end_time, 
+                     nrg_freq, timestep, remove_heading=False):
     """Truncate a simfile between given start and end time.
 
     Args:
@@ -22,12 +23,15 @@ def truncate_simfile(in_file, out_file, start_time, end_time, nrg_freq, timestep
         end_time (int): End time in ns
         nrg_freq (int): Number of steps between energy evaluations
         timestep (int): Timestep in ns
+        remove_heading (bool): Whether or not to remove the heading
+        before the data. Defaults to false.
     """
     with open(in_file, "r") as istream:
         with open(out_file, "w") as ostream:
             for line in istream.readlines():
                 if line.startswith("#"):
-                    ostream.write(line)
+                    if not remove_heading:
+                        ostream.write(line)
                     continue
                 elems = line.split()
                 time = (float(elems[0])+nrg_freq)*timestep
@@ -115,7 +119,7 @@ def get_convergence_dict(leg="bound", run_nos=[1, 2, 3, 4, 5],
                         chunksize=0.05, nrg_freq=100, timestep=0.000004,
                         simtime = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
                             "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3},
-                            "release": {"wind_len": 2, "discard": 1}, "unrigidify_lig": {
+                            "release": {"wind_len": 6, "discard": 1}, "unrigidify_lig": {
                             "wind_len": 6, "discard": 1},"unrigidify_prot": {
                             "wind_len": 6, "discard": 1}, "rigidify": {
                             "wind_len": 6, "discard": 1}, "release_2": {"wind_len": 2, "discard": 1}}
