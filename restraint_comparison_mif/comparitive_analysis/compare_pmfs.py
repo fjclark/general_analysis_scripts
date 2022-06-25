@@ -32,7 +32,10 @@ def plot_all_pmfs(run_nos, leg):
             _, _, pmf, _ = read_mbar_data(mbar_path, lam_vals) # Throw away overall DG, sd, and overlap
             pmfs.append(pmf)
 
-        plot_conv(axs[i], leg, stage, lam_vals, pmfs, "$\lambda$", "$\Delta \it{G}$ / kcal.mol$^-$$^1$")
+        if len(stages) == 1:
+            plot_conv(axs, leg, stage, lam_vals, pmfs, "$\lambda$", "$\Delta \it{G}$ / kcal.mol$^-$$^1$")
+        else:
+            plot_conv(axs[i], leg, stage, lam_vals, pmfs, "$\lambda$", "$\Delta \it{G}$ / kcal.mol$^-$$^1$")
 
     fig.tight_layout()
     mkdir_if_required("analysis/overall_convergence")

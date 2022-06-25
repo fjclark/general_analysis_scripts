@@ -1,6 +1,7 @@
 # Run complete set of default analyses 
 import os
 
+from .get_data import dir_paths
 from .get_data import convergence_data
 from .get_data import get_results
 from .get_data import check_success
@@ -14,11 +15,11 @@ from .comparitive_analysis import rmsd
 from .comparitive_analysis import av_waters
 
 def run_analysis(leg = "bound", run_nos=[1,2,3,4,5], restraint_type="Boresch", timestep=4, nrg_freq=100,
-percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5, "rigidify":83.33333333,
-                     "unrigidify_lig":83.33333333, "unrigidify_prot":83.33333333},
-                      simtime = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
+                 percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":62.5, "rigidify":83.33333333,
+                     "unrigidify_lig":83.33333333, "unrigidify_prot":83.33333333, "release":83.333333},
+                simtime = {"restrain": {"wind_len": 6, "discard": 1}, "discharge": {
                           "wind_len": 6, "discard": 1}, "vanish": {"wind_len": 8, "discard": 3},
-                          "release": {"wind_len": 2, "discard": 1}, "unrigidify_lig": {
+                          "release": {"wind_len": 6, "discard": 1}, "unrigidify_lig": {
                           "wind_len": 6, "discard": 1},"unrigidify_prot": {
                           "wind_len": 6, "discard": 1}, "rigidify": {
                           "wind_len": 6, "discard": 1}, "release_2": {"wind_len": 2, "discard": 1}}
@@ -46,6 +47,14 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
     print("###############################################################################################")
     print(f"Analysing the {leg} leg for runs: {run_nos} and calculation type = {restraint_type}")
     print("Ensure you are in the base directory and the development version of biosimspace is activated")
+    
+    # Get stages
+    paths = dir_paths.get_dir_paths(run_nos, leg)
+    run_names = list(paths.keys())
+    stages = list(paths[run_names[0]].keys())
+    # Remove irrelevant entries from percent_traj_dict
+    percent_traj_dict = {k:v for k,v in percent_traj_dict.items() if k in stages}
+    simtime = {k:v for k,v in simtime.items() if k in stages}
 
     # Only calculate convergence data if this has not been done already
     if not os.path.isfile("analysis/convergence_data.pickle"):
@@ -65,12 +74,16 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
         indiv_pmf_conv.plot_pmfs_conv(leg, run_nos)
         dh_dlam.plot_grads(leg, run_nos, percent_traj_dict, timestep, nrg_freq, dt=0.1)
 
-        # Plot average waters within 8 A of CG2 in VAL and N in PRT on opposite sides of binding pocket.
-        # This gives reasonable coverage of the pocket while excluding most waters outside.
-        av_waters.plot_av_waters(leg, run_nos, stage="vanish", 
-        percent_traj=percent_traj_dict["vanish"], index=1637,length=8, index2=34, length2=8)
+        if "vanish" in stages:
+            # Plot average waters within 8 A of CG2 in VAL and N in PRT on opposite sides of binding pocket.
+            # This gives reasonable coverage of the pocket while excluding most waters outside.
+            av_waters.plot_av_waters(leg, run_nos, stage="vanish", 
+            percent_traj=percent_traj_dict["vanish"], index=1637,length=8, index2=34, length2=8)
+
         # Plot DOF for restrain lam = 0, restrain lam = 1, discharge lam = 1 and vanish lam =1
         plot_winds = [("restrain",0.000),("restrain",1.000),("discharge",1.000),("vanish",1.000)]
+        # Account for missing stages
+        plot_winds_filt = [wind for wind in plot_winds if wind[0] in stages]
 
         if restraint_type == "Boresch":
             selected_dof_list = ["r","thetaA","thetaB","phiA","phiB","phiC"]
@@ -79,13 +92,14 @@ percent_traj_dict = {"restrain":83.33333333, "discharge":83.33333333, "vanish":6
         elif restraint_type == "multiple_dist":
             selected_dof_list = []
 
-        for wind in plot_winds:
+        for wind in plot_winds_filt:
             restrained_dof.plot_dof_hists(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
                                             selected_dof_list, restraint_type)
             restrained_dof.plot_dof_vals(leg, run_nos, wind[0], wind[1], percent_traj_dict[wind[0]], 
                                             selected_dof_list, restraint_type)
 
         # RMSD for protein
+        
         rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "protein")
         # RMSD for ligand
         rmsd.plot_rmsds(leg, run_nos, percent_traj_dict, "resname LIG and (not name H*)")

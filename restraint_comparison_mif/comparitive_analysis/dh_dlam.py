@@ -100,7 +100,7 @@ def plot_grad(run_name, simfile_path, ax, percent_traj, timestep =4, nrg_freq = 
     if dt:
         grads = rolling_av(times, grads, dt)
     
-    ax.plot(times, grads, label=f"Run {run_name}", alpha=0.3)
+    ax.plot(times, grads, label=f"Run {run_name}", alpha=0.6)
     ax.set_xlabel("Time (ns)")
     ax.set_ylabel("d$H$/d$\lambda$ / kcal.mol$^-$$^1$")
 
@@ -123,7 +123,8 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100, dt=0):
     paths = get_dir_paths(runs, leg)
     run_names = list(paths.keys())
     stages = list(paths[run_names[0]].keys())
-    stages = ["vanish"] + stages # split vanish into two - easiest to add another vanish
+    if "vanish" in stages:
+        stages = ["vanish"] + stages # split vanish into two - easiest to add another vanish
     fig, _ = plt.subplots(1,1,figsize=(20,52), dpi=200)
     subfigs = fig.subfigures(1,1*len(stages)) # subfigs to allow different no plots in each column
 
@@ -139,9 +140,14 @@ def plot_grads(leg, runs, percent_traj_dict, timestep=4, nrg_freq=100, dt=0):
             else:
                 lam_vals = lam_vals[median_idx:]
 
-        subfig = subfigs[i]
+        # Allow for case with only one leg
+        if len(stages) ==1:
+            subfig = subfigs
+        else:
+            subfig = subfigs[i]
         subfig.suptitle(f'{leg} {stage}')
         subfig_axs = subfig.subplots(len(lam_vals),1, sharex=True)
+        print(f"{percent_traj_dict=}")
         percent_traj = percent_traj_dict[stage]
 
         for j, lam_val in enumerate(lam_vals):

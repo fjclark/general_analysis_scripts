@@ -40,6 +40,7 @@ def plot_pmf_conv(ax, leg, stage, run_name, conv_dict):
 
     for i, cum_time in enumerate(cum_times):
         pmf = list(cumtime_dict[cum_time]["pmf"].values())
+        print(cum_times_per_wind[i])
         ax.plot(lam_vals, pmf, c=mapper.to_rgba(cum_times_per_wind[i]), alpha=0.2, lw=0.5)
     ax.set_title(f'{run_name} {leg} {stage}')
     ax.set_xlabel(r'$\lambda$')
@@ -72,7 +73,10 @@ def plot_pmfs_conv(leg="bound", run_nos=[1,2,3,4,5], pickled_data="analysis/conv
 
     for i, run_name in enumerate(run_names):
         for j, stage in enumerate(stages):
-            ax = axs[i,j]
+            if n_stages ==1:
+                ax = axs[i]
+            else:
+                ax = axs[i,j]
             mapper = plot_pmf_conv(ax, leg, stage, run_name, conv_dict)
             if j == n_stages-1:
                 fig.colorbar(mapper, ax=ax).set_label('Cumulative Sampling Time per Window / ns')

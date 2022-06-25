@@ -51,7 +51,10 @@ def plot_overlap_mats(leg="bound", run_nos=[1,2,3,4,5]):
             mbar_file = paths[run_name][stage]["mbar_data"]
             lam_vals_str = paths[run_name][stage]["lam_vals"]
             lam_vals = [float(x) for x in lam_vals_str]
-            ax = axs[i,j]
+            if len(stages) == 1:
+                ax = axs[i]
+            else:
+                ax = axs[i,j]
             plot_overlap_mat(ax, leg, stage, run_name, mbar_file, lam_vals)
         
     fig.tight_layout()

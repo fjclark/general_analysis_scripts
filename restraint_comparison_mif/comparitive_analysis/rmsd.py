@@ -67,7 +67,8 @@ def plot_rmsds(leg, runs, percent_traj_dict, selection):
     paths = get_dir_paths(runs, leg)
     run_names = list(paths.keys())
     stages = list(paths[run_names[0]].keys())
-    stages = ["vanish"] + stages # split vanish into two - easiest to add another vanish
+    if "vanish" in stages:
+        stages = ["vanish"] + stages # split vanish into two - easiest to add another vanish
     fig, _ = plt.subplots(1,1,figsize=(20,52), dpi=200)
     subfigs = fig.subfigures(1,1*len(stages)) # subfigs to allow different no plots in each column
 
@@ -85,7 +86,10 @@ def plot_rmsds(leg, runs, percent_traj_dict, selection):
             else:
                 lam_vals = lam_vals[median_idx:]
 
-        subfig = subfigs[i]
+        if len(stages) == 1:
+            subfig = subfigs
+        else:
+            subfig = subfigs[i]
         subfig.suptitle(f'{leg} {stage}')
         subfig_axs = subfig.subplots(len(lam_vals),1, sharex=True)
         for j, lam_val in enumerate(lam_vals):

@@ -70,7 +70,11 @@ def plot_stages_conv(pickled_data, leg):
                 fr_nrg_run.append(conv_dict[run][stage][cumtime]["dg_tot"])
             fr_nrgs.append(fr_nrg_run)
 
-        plot_conv(axs[i], leg, stage, cumtimes, fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
+        if len(stages) == 1:
+            plot_conv(axs, leg, stage, cumtimes, fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
+        else:
+            plot_conv(axs[i], leg, stage, cumtimes, fr_nrgs, 'Cumulative sampling time per run / ns', '$\Delta \it{G}$ / kcal.mol$^-$$^1$')
+        
 
     fig.tight_layout()
     mkdir_if_required("analysis/overall_convergence")
