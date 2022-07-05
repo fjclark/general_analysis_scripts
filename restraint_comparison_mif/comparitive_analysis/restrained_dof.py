@@ -599,6 +599,10 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
     colours =  ['#000000', '#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00'] # Will cause issues for more than 10 runs
     axs = axs.flatten()
 
+    # Dictionary to translate the Boresch DOF to latex for figure labels
+    boresch_to_latex = {"r":r"$r_{Aa}$","thetaA":r"$\theta_A$","thetaB":r"$\theta_B$","phiA":"$\phi_A$","phiB":"$\phi_B$",
+        "phiC":"$\phi_C$","thetaR":r"$\theta_R$","thetaL":r"$\theta_L$"}
+
     for j, run in enumerate(runs):
         run_name = dir_paths.get_run_name(run,leg)
         for i, dof in enumerate(selected_dof_list):
@@ -609,11 +613,11 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
             ax.hist(values,label = f"{run_name}", color=colours[j], edgecolor='k')
             ax.axvline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r" or dof[1] == "r":
-                ax.set_xlabel("r ($\AA$)")
+                ax.set_ylabel(f"{boresch_to_latex[dof]} " + r"($\mathrm{\AA}$)")
             elif type(dof) == tuple:
-                ax.set_xlabel(f"Dist between indices {dof[0]} and {dof[1]}")
+                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}" + r" $\textrm{\AA}$")
             else:
-                ax.set_xlabel(f"{dof} (rad)")
+                ax.set_ylabel(f"{boresch_to_latex[dof]} (rad)")
             ax.set_ylabel("Counts")
             ax.legend(loc=(1.04,0))
 
@@ -648,10 +652,15 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
         selected_dof_list = [pair for pair in dof_dicts[run_names[0]] if pair != "tot_var"]
     no_dof = len(selected_dof_list)
 
-    fig, axs = plt.subplots(ceil(no_dof/6), 6, figsize=(4*6,4*ceil(no_dof/6)), dpi=500)
+    fig, axs = plt.subplots(ceil(no_dof/3), 3, figsize=(4*3,2*ceil(no_dof/3)), dpi=800)
     #colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
     colours =  ['#000000', '#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00'] # Will cause issues for more than 10 runs
     axs = axs.flatten()
+
+    # Dictionary to translate the Boresch DOF to latex for figure labels
+    boresch_to_latex = {"r":r"$r_{Aa}$","thetaA":r"$\theta_A$","thetaB":r"$\theta_B$","phiA":"$\phi_A$","phiB":"$\phi_B$",
+        "phiC":"$\phi_C$","thetaR":r"$\theta_R$","thetaL":r"$\theta_L$"}
+
 
     for j, run in enumerate(runs):
         run_name = dir_paths.get_run_name(run,leg)
@@ -663,18 +672,23 @@ def plot_dof_vals(leg, runs, stage, lam_val, percent_traj, selected_dof_list, do
             ax.plot([x for x in range(len(values))], values, label = f"{run_name}", color=colours[j])
             ax.axhline(mean, linestyle = "dashed", color=colours[j], linewidth=2, label=f"Mean: {mean:.2f}\nSD: {sd:.2f}")
             if dof == "r" or dof[1] == "r":
-                ax.set_ylabel(f"{dof} ($\AA$)")
+                ax.set_ylabel(f"{boresch_to_latex[dof]} " + r"($\mathrm{\AA}$)")
             elif type(dof) == tuple:
-                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]} / $\AA$")
+                ax.set_ylabel(f"Dist between indices {dof[0]} and {dof[1]}" + r" $\textrm{\AA}$")
             else:
-                ax.set_ylabel(f"{dof} (rad)")
+                ax.set_ylabel(f"{boresch_to_latex[dof]} (rad)")
             ax.set_xlabel("Frame No")
             ax.legend(loc=(1.04,0))
+#           handles, labels = ax.get_legend_handles_labels()
+#           lg = fig.legend(handles, labels, bbox_to_anchor=(1.10, 0.5))
+                #ax.legend().set_visible(False)
 
     fig.tight_layout()
     mkdir_if_required("analysis")
     mkdir_if_required(f"analysis/{dof_type}_dof")
     fig.savefig(f"analysis/{dof_type}_dof/{leg}_{stage}_{lam_val:.3f}_{dof_type}_dof_vals.png")
+#                bbox_extra_artists=(lg,), 
+#                bbox_inches='tight')
 
 
 # Just seems to return whitespace (but no errors) if functions modified to return figures
