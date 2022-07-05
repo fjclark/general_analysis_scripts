@@ -594,7 +594,8 @@ def plot_dof_hists(leg, runs, stage, lam_val, percent_traj, selected_dof_list, d
         selected_dof_list = [pair for pair in dof_dicts[run_names[0]] if pair != "tot_var"]
     no_dof = len(selected_dof_list)
 
-    fig, axs = plt.subplots(ceil(no_dof/6), 6, figsize=(4*6,4*ceil(no_dof/6)), dpi=500)
+    #fig, axs = plt.subplots(ceil(no_dof/6), 6, figsize=(4*6,4*ceil(no_dof/6)), dpi=500)
+    fig, axs = plt.subplots(ceil(no_dof/3), 3, figsize=(4*3,2*ceil(no_dof/3)), dpi=800)
     #colours =  ['#00429d', '#3a8bbb', '#ffb59a', '#ff6b95', '#93003a'] # Will cause issues for more than 5 runs
     colours =  ['#000000', '#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00'] # Will cause issues for more than 10 runs
     axs = axs.flatten()
